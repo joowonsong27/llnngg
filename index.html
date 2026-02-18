@@ -647,7 +647,7 @@
         let currentRoomId = null;
 
         // 방 기반 동적 refs (joinRoom 후 초기화)
-        let playersRef, gameStateRef, bulletsRef, particlesRef, swingsRef, stabsRef, smokesRef, hitEffectsRef, smithHammersRef, samuraiSlashesRef, parryHitsRef;
+        let playersRef, gameStateRef, bulletsRef, particlesRef, swingsRef, stabsRef, smokesRef, hitEffectsRef, smithHammersRef, samuraiSlashesRef, parryHitsRef, jumongArrowsRef, muhuiZonesRef;
 
         function initRoomRefs(roomId) {
             const base = database.ref('rooms/' + roomId);
@@ -662,6 +662,8 @@
             smithHammersRef = base.child('smithHammers');
             samuraiSlashesRef = base.child('samuraiSlashes');
             parryHitsRef = base.child('parryHits');
+            jumongArrowsRef = base.child('jumongArrows');
+            muhuiZonesRef   = base.child('muhuiZones');
         }
 
         // ========== 직업 데이터 ==========
@@ -711,6 +713,25 @@
                 stats: { moveSpeed: 4.5, attack: 20, attackSpeed: 1, health: 100 },
                 color: '#c0392b',
                 skill: { name: '패링', cooldown: 8 }
+            },
+            jumong: {
+                id: 'jumong',
+                name: '주몽',
+                icon: '🏹',
+                description: '맵 끝까지 꿰뚫는 강력한 화살로 원거리 적을 제압하는 저격 궁수',
+                stats: { moveSpeed: 3.5, attack: 50, attackSpeed: 0.5, health: 80 },
+                color: '#27ae60',
+                bulletSpeed: 40,
+                skill: { name: '호크아이', cooldown: 8 }
+            },
+            muhui: {
+                id: 'muhui',
+                name: '무희',
+                icon: '🌸',
+                description: '화려한 몸짓으로 벚꽃 비수를 퍼붓고 춤사위로 적의 발목을 잡는 속사 카이터',
+                stats: { moveSpeed: 5.5, attack: 10, attackSpeed: 3.5, health: 60 },
+                color: '#e91e8c',
+                skill: { name: '꽃보라 춤', cooldown: 15 }
             }
         };
 
@@ -757,18 +778,42 @@
         const smithHammerHitIds = new Set();  // 이번 공격에서 맞은 대상
         const playerHammers = {};             // 다른 플레이어 망치 공격 상태
 
+        // 주몽 전용 상태
+        let jumongHawkeyeActive = false;
+        let jumongHawkeyeEnd = 0;
+        let jumongCurrentZoom = 1.0;       // 현재 실제 적용 줌 (보간용)
+        let jumongTargetZoom  = 1.0;       // 목표 줌
+        const JUMONG_HAWKEYE_DURATION = 4000;   // 호크아이 지속 (ms)
+        const JUMONG_HAWKEYE_ZOOM = 1.875;      // 시야 배율 (2.5에서 25% 감소)
+        const JUMONG_ARROW_SPEED = 40;          // 화살 속도 (빠름)
+        const JUMONG_ARROW_RANGE = 4000;        // 최대 사거리 (맵 대각선 이상)
+        const playerJumongArrows = {};          // 다른 플레이어 화살 시각 효과
+
+        // 무희 전용 상태
+        let muhuiZoneActive = false;
+        let muhuiZoneEnd = 0;
+        const MUHUI_ZONE_DURATION = 5000;       // 장판 지속 (ms)
+        const MUHUI_ZONE_RADIUS = 160;          // 장판 반경 (2배)
+        const MUHUI_ZONE_DPS = 10;              // 초당 피해
+        const MUHUI_PETAL_RANGE = 440;          // 벚꽃비수 최대 사거리 (2배)
+        const MUHUI_PETAL_COUNT = 6;            // 발사 수
+        const MUHUI_PETAL_SPREAD = Math.PI / 3; // 부채꼴 각도 (60도)
+        const MUHUI_PETAL_SPEED = 14;
+        let muhuiZoneDmgTimer = 0;              // 장판 틱 카운터
+        const playerMuhuiZones = {};            // 다른 플레이어 장판 상태
+
         // 사무라이 전용 상태
         const SAMURAI_SLASH_TOTAL = 10;       // 찌르기 애니메이션 총 프레임
-        const SAMURAI_MAX_CHARGE = 2500;      // 최대 차징 시간 (ms)
-        // 차징 단계별 스탯 (0~6단계)
+        const SAMURAI_MAX_CHARGE = 2000;      // 최대 차징 시간 (ms) — 풀차징 2초
+        // 차징 단계별 스탯 (0~6단계, 2000ms 기준 균등 분배)
         const SAMURAI_CHARGE_LEVELS = [
-            { minTime: 0,    maxTime: 417,  dmg: 5,  length: 80,  width: 30, dashFrames: 5,  dashSpeed: 10 },
-            { minTime: 417,  maxTime: 833,  dmg: 10, length: 105, width: 36, dashFrames: 6,  dashSpeed: 11 },
-            { minTime: 833,  maxTime: 1250, dmg: 15, length: 130, width: 40, dashFrames: 7,  dashSpeed: 12 },
-            { minTime: 1250, maxTime: 1667, dmg: 20, length: 155, width: 44, dashFrames: 8,  dashSpeed: 13 },
-            { minTime: 1667, maxTime: 2083, dmg: 25, length: 175, width: 48, dashFrames: 9,  dashSpeed: 14 },
-            { minTime: 2083, maxTime: 2500, dmg: 30, length: 195, width: 52, dashFrames: 10, dashSpeed: 15 },
-            { minTime: 2500, maxTime: 9999, dmg: 35, length: 220, width: 58, dashFrames: 12, dashSpeed: 17 },
+            { minTime: 0,    maxTime: 334,  dmg: 5,  length: 80,  width: 30, dashFrames: 5,  dashSpeed: 10 },
+            { minTime: 334,  maxTime: 667,  dmg: 10, length: 105, width: 36, dashFrames: 6,  dashSpeed: 11 },
+            { minTime: 667,  maxTime: 1000, dmg: 15, length: 130, width: 40, dashFrames: 7,  dashSpeed: 12 },
+            { minTime: 1000, maxTime: 1334, dmg: 20, length: 155, width: 44, dashFrames: 8,  dashSpeed: 13 },
+            { minTime: 1334, maxTime: 1667, dmg: 25, length: 175, width: 48, dashFrames: 9,  dashSpeed: 14 },
+            { minTime: 1667, maxTime: 2000, dmg: 30, length: 195, width: 52, dashFrames: 10, dashSpeed: 15 },
+            { minTime: 2000, maxTime: 9999, dmg: 35, length: 220, width: 58, dashFrames: 12, dashSpeed: 17 },
         ];
         // 차징 상태
         let samuraiCharging = false;          // 마우스 누르고 있음
@@ -841,6 +886,18 @@
                 isDummy: true
             };
         }
+
+        // ── 허수아비 DPS/데미지 측정 ──
+        let dummyDmgTotal = 0;        // 누적 피해량
+        let dummyDmgWindow = [];      // 최근 1초 피해 기록 [{time, dmg}]
+        let dummyDps = 0;             // 현재 DPS
+        let dummyLastHit = 0;         // 마지막 피해량
+        let dummyFloatingNums = [];   // 플로팅 데미지 숫자
+        // ── 허수아비 총알 발사 (연습 모드) ──
+        let dummyShootTimer = 0;
+        const DUMMY_SHOOT_INTERVAL = 90; // 프레임(60fps 기준 1.5초)
+        const DUMMY_BULLET_SPEED = 5;    // 느린 총알
+        const DUMMY_BULLET_DMG = 20;     // 보병 데미지와 동일
 
         // 카메라 오프셋
         let cameraX = 0;
@@ -1429,6 +1486,8 @@
                             });
                             isAlive = true;
                             isSpectating = false;
+                            jumongHawkeyeActive = false;
+                            muhuiZoneActive = false;
                             document.getElementById('spectateHint').style.display = 'none';
                         }, 1000);
                     } else {
@@ -1597,6 +1656,38 @@
                 if (Date.now() - d.createdAt > 1500) return;
                 _checkAndTriggerParry();
             });
+            // ── 주몽 화살 시각 이펙트 수신 ──
+            jumongArrowsRef.on('child_added', (snapshot) => {
+                const a = snapshot.val();
+                if (!a || a.ownerId === myPlayerId) return;
+                if (Date.now() - a.createdAt > 3000) return;
+                playerJumongArrows[a.id] = { ...a, life: 1.0 };
+            });
+            jumongArrowsRef.on('child_removed', (snapshot) => {
+                const a = snapshot.val();
+                if (a) delete playerJumongArrows[a.id];
+            });
+
+            // ── 무희 장판 수신 ──
+            muhuiZonesRef.on('child_added', (snapshot) => {
+                const z = snapshot.val();
+                if (!z || z.ownerId === myPlayerId) return;
+                if (Date.now() - z.createdAt > z.duration + 500) return;
+                playerMuhuiZones[z.ownerId] = { ...z };
+            });
+            muhuiZonesRef.on('child_changed', (snapshot) => {
+                const z = snapshot.val();
+                if (!z || z.ownerId === myPlayerId) return;
+                if (playerMuhuiZones[z.ownerId]) {
+                    playerMuhuiZones[z.ownerId].x = z.x;
+                    playerMuhuiZones[z.ownerId].y = z.y;
+                }
+            });
+            muhuiZonesRef.on('child_removed', (snapshot) => {
+                const z = snapshot.val();
+                if (z) delete playerMuhuiZones[z.ownerId];
+            });
+
             samuraiSlashesRef.on('child_added', (snapshot) => {
                 const s = snapshot.val();
                 if (!s || s.ownerId === myPlayerId) return;
@@ -1621,28 +1712,93 @@
             smithEnhanceLevel = 0;
             smithForging = false;
             CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
+            jumongHawkeyeActive = false;
+            muhuiZoneActive = false;
 
             const isWinner = players[myPlayerId] && players[myPlayerId].health > 0 && !players[myPlayerId].isSpectator;
-            const msg = isWinner ? `🎉 승리! 🎉` : `🏆 ${winnerName} 님이 승리했습니다!`;
-            
-            // 화면 중앙에 메시지
-            ctx.fillStyle = 'rgba(0,0,0,0.8)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = isWinner ? '#ffd700' : '#00fff5';
-            ctx.font = 'bold 48px Malgun Gothic';
-            ctx.textAlign = 'center';
-            ctx.fillText(msg, canvas.width / 2, canvas.height / 2);
+            const msg = isWinner ? `🎉 ${myNickname} 승리! 🎉` : `🏆 ${winnerName} 님이 승리했습니다!`;
 
-            // 3초 후 방 전체 삭제 후 새로고침
-            setTimeout(() => {
-                if (currentRoomId) database.ref('rooms/' + currentRoomId).remove();
-                location.reload();
-            }, 3000);
+            // 오버레이 화면 표시
+            const overlay = document.createElement('div');
+            overlay.id = 'victoryOverlay';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+                justify-content: center; align-items: center; z-index: 9999;
+            `;
+            overlay.innerHTML = `
+                <div style="text-align:center;">
+                    <div style="font-size: 56px; font-weight: bold; color: ${isWinner ? '#ffd700' : '#00fff5'};
+                        text-shadow: 0 0 30px ${isWinner ? '#ffd700' : '#00fff5'}; margin-bottom: 30px;">
+                        ${msg}
+                    </div>
+                    <div style="color: #aaa; font-size: 18px; margin-bottom: 40px;">잠시 후 직업 선택 화면으로 이동합니다...</div>
+                    <div style="display:flex; gap: 20px; justify-content: center;">
+                        <button id="victoryReplayBtn" style="padding:15px 35px; background:#00fff5; color:#16213e;
+                            border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer;">
+                            바로 이동
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // 바로 이동 버튼
+            document.getElementById('victoryReplayBtn').addEventListener('click', () => goToClassSelectAndLobby());
+
+            // 5초 후 자동 이동
+            let autoTimer = setTimeout(() => goToClassSelectAndLobby(), 5000);
+
+            function goToClassSelectAndLobby() {
+                clearTimeout(autoTimer);
+                // 방 삭제
+                if (currentRoomId && isHost) database.ref('rooms/' + currentRoomId).remove();
+
+                // 상태 리셋 (닉네임은 유지)
+                currentRoomId = null;
+                isHost = false;
+                isReady = false;
+                isSpectating = false;
+                isAlive = true;
+                gameStatus = GAME_STATUS.LOBBY;
+
+                // 오버레이 제거
+                overlay.remove();
+
+                // 직업 선택 화면으로 (닉네임 유지)
+                showScreen('classScreen');
+                renderClassSelection();
+
+                // 직업 선택 후 방 선택 없이 바로 새 방 생성해서 대기실 진입하도록
+                // classSelectBtn 이벤트를 임시 교체
+                const origBtn = document.getElementById('classSelectBtn');
+                const newBtn = origBtn.cloneNode(true);
+                origBtn.parentNode.replaceChild(newBtn, origBtn);
+                newBtn.addEventListener('click', function() {
+                    if (!myClass) {
+                        document.getElementById('classError').textContent = '직업을 선택해주세요!';
+                        return;
+                    }
+                    // 새 방 생성 후 바로 대기실
+                    const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    joinRoom(roomId, true);
+                });
+            }
         }
 
         function handleKeyDown(e) {
             const key = e.key.toLowerCase();
             keys[key] = true;
+
+            // Tab: 허수아비 측정 초기화
+            if (e.key === 'Tab' && gameMode === GAME_MODE.PRACTICE) {
+                e.preventDefault();
+                dummyDmgTotal = 0;
+                dummyDmgWindow = [];
+                dummyDps = 0;
+                dummyLastHit = 0;
+                dummyFloatingNums = [];
+            }
             
             // Shift 대쉬
             if (key === 'shift' && !keys['shift_pressed']) {
@@ -1692,6 +1848,17 @@
             if (!samuraiCharging) return;
             samuraiCharging = false;
             if (myPlayerId) playersRef.child(myPlayerId).update({ samuraiCharging: false });
+        }
+
+        // ── 무희 장판 강제 종료 ──
+        function cancelMuhuiZone() {
+            if (!muhuiZoneActive) return;
+            muhuiZoneActive = false;
+            if (myPlayerId) {
+                muhuiZonesRef.child(myPlayerId).remove();
+                delete playerMuhuiZones[myPlayerId];
+                playersRef.child(myPlayerId).update({ muhuiZone: false });
+            }
         }
 
         // ── 사무라이 차징 발사 공통 함수 ──
@@ -1850,6 +2017,82 @@
                 smithHammersRef.child(myPlayerId).set(hammerData);
                 playerHammers[myPlayerId] = { ...hammerData, frames: SMITH_HAMMER_TOTAL };
                 lastAttackTime = now;
+            } else if (myClass === 'jumong') {
+                // 주몽: 맵 끝까지 날아가는 화살
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                const dirX = dx / dist, dirY = dy / dist;
+                const sx = myPlayer.x + PLAYER_SIZE / 2;
+                const sy = myPlayer.y + PLAYER_SIZE / 2;
+                const arrowData = {
+                    id: myPlayerId + '_arrow_' + now,
+                    ownerId: myPlayerId,
+                    x: sx, y: sy,
+                    vx: dirX * JUMONG_ARROW_SPEED,
+                    vy: dirY * JUMONG_ARROW_SPEED,
+                    damage: CLASSES.jumong.stats.attack,
+                    dir: Math.atan2(dirY, dirX),
+                    createdAt: now,
+                    maxLifetime: (JUMONG_ARROW_RANGE / JUMONG_ARROW_SPEED) * (1000/60)
+                };
+                // 로컬 bullet으로도 등록 (충돌 판정용)
+                const bulletData = {
+                    id: arrowData.id,
+                    x: sx, y: sy,
+                    vx: arrowData.vx, vy: arrowData.vy,
+                    damage: arrowData.damage,
+                    ownerId: myPlayerId,
+                    createdAt: now,
+                    maxLifetime: arrowData.maxLifetime,
+                    isSkillBullet: false,
+                    isArrow: true
+                };
+                bulletIds.add(bulletData.id);
+                bullets.push(bulletData);
+                bulletsRef.child(bulletData.id).set(bulletData);
+                // 화살 시각 이펙트 Firebase 공유
+                jumongArrowsRef.child(arrowData.id).set(arrowData);
+                playerJumongArrows[arrowData.id] = { ...arrowData, life: 1.0 };
+                setTimeout(() => {
+                    jumongArrowsRef.child(arrowData.id).remove();
+                    delete playerJumongArrows[arrowData.id];
+                }, arrowData.maxLifetime + 200);
+                lastAttackTime = now;
+            } else if (myClass === 'muhui') {
+                // 무희: 부채꼴 5발 벚꽃비수
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                const baseAngle = Math.atan2(dy, dx);
+                const sx = myPlayer.x + PLAYER_SIZE / 2;
+                const sy = myPlayer.y + PLAYER_SIZE / 2;
+                for (let i = 0; i < MUHUI_PETAL_COUNT; i++) {
+                    const spread = (Math.random() - 0.5) * MUHUI_PETAL_SPREAD;
+                    const angle = baseAngle + spread;
+                    const pid = myPlayerId + '_petal_' + now + '_' + i;
+                    const bData = {
+                        id: pid, x: sx, y: sy,
+                        vx: Math.cos(angle) * MUHUI_PETAL_SPEED,
+                        vy: Math.sin(angle) * MUHUI_PETAL_SPEED,
+                        damage: CLASSES.muhui.stats.attack,
+                        ownerId: myPlayerId,
+                        createdAt: now,
+                        maxLifetime: (MUHUI_PETAL_RANGE / MUHUI_PETAL_SPEED) * (1000/60),
+                        isSkillBullet: false,
+                        isPetal: true,
+                        angle: angle
+                    };
+                    bulletIds.add(pid);
+                    bullets.push(bData);
+                    bulletsRef.child(pid).set(bData);
+                }
+                lastAttackTime = now;
             } else {
                 shootBullet(mouseX, mouseY);
                 lastAttackTime = now;
@@ -1921,13 +2164,14 @@
                 samuraiParryHit = false;
                 samuraiParryEnd = now + 1000;
                 skillCooldownEnd = now + CLASSES.samurai.skill.cooldown * 1000;
-                // 패링 방향 = 마우스 방향
+                // 패링 방향 = 패링 사용 순간의 마우스 방향으로 확정 고정
                 const myPlayer = players[myPlayerId];
                 const worldMouseX = mouseX + cameraX;
                 const worldMouseY = mouseY + cameraY;
                 const pdx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
                 const pdy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
-                samuraiParryDir = Math.atan2(pdy, pdx);
+                const pDist = Math.sqrt(pdx * pdx + pdy * pdy);
+                samuraiParryDir = pDist > 10 ? Math.atan2(pdy, pdx) : 0;
                 // Firebase에 패링 상태 공유
                 playersRef.child(myPlayerId).update({ samuraiParrying: true });
                 samuraiSlashesRef.child('parry_' + myPlayerId).set({
@@ -1992,6 +2236,44 @@
                         spawnForgeEnhanceEffect(players[myPlayerId].x, players[myPlayerId].y);
                     }
                 }, 2000);
+            } else if (myClass === 'jumong') {
+                // 주몽 스킬: 호크아이 — 시야 2.5배 확대
+                jumongHawkeyeActive = true;
+                jumongHawkeyeEnd = now + JUMONG_HAWKEYE_DURATION;
+                jumongTargetZoom = JUMONG_HAWKEYE_ZOOM;
+                skillCooldownEnd = now + CLASSES.jumong.skill.cooldown * 1000;
+                playersRef.child(myPlayerId).update({ jumongHawkeye: true });
+                setTimeout(() => {
+                    jumongHawkeyeActive = false;
+                    jumongTargetZoom = 1.0;
+                    playersRef.child(myPlayerId).update({ jumongHawkeye: false });
+                }, JUMONG_HAWKEYE_DURATION);
+            } else if (myClass === 'muhui') {
+                // 무희 스킬: 꽃보라 춤 — 장판 설치
+                if (muhuiZoneActive) return;
+                muhuiZoneActive = true;
+                muhuiZoneEnd = now + MUHUI_ZONE_DURATION;
+                muhuiZoneDmgTimer = 0;
+                skillCooldownEnd = now + CLASSES.muhui.skill.cooldown * 1000;
+                const myPlayer = players[myPlayerId];
+                const zoneData = {
+                    id: myPlayerId + '_zone_' + now,
+                    ownerId: myPlayerId,
+                    x: myPlayer.x + PLAYER_SIZE / 2,
+                    y: myPlayer.y + PLAYER_SIZE / 2,
+                    radius: MUHUI_ZONE_RADIUS,
+                    createdAt: now,
+                    duration: MUHUI_ZONE_DURATION
+                };
+                muhuiZonesRef.child(myPlayerId).set(zoneData);
+                playerMuhuiZones[myPlayerId] = { ...zoneData };
+                playersRef.child(myPlayerId).update({ muhuiZone: true });
+                setTimeout(() => {
+                    muhuiZoneActive = false;
+                    muhuiZonesRef.child(myPlayerId).remove();
+                    delete playerMuhuiZones[myPlayerId];
+                    playersRef.child(myPlayerId).update({ muhuiZone: false });
+                }, MUHUI_ZONE_DURATION);
             } else {
                 useSkill(mouseX, mouseY);
             }
@@ -2533,13 +2815,7 @@
             samuraiCounterActive = true;
             samuraiCounterFrames = SAMURAI_COUNTER_FRAMES;
             samuraiCounterHitIds.clear();
-            // ★ 반격 발동 순간의 마우스 방향으로 재계산
-            if (myPlayerId && players[myPlayerId]) {
-                const mp = players[myPlayerId];
-                const wdx = (mouseX + cameraX) - (mp.x + PLAYER_SIZE / 2);
-                const wdy = (mouseY + cameraY) - (mp.y + PLAYER_SIZE / 2);
-                samuraiParryDir = Math.atan2(wdy, wdx);
-            }
+            // ★ 패링 사용 순간 저장된 방향 그대로 사용 (마우스 재계산 없음)
             samuraiCounterVx = Math.cos(samuraiParryDir) * SAMURAI_COUNTER_SPEED;
             samuraiCounterVy = Math.sin(samuraiParryDir) * SAMURAI_COUNTER_SPEED;
             // Firebase 공유: 반격 슬래시로 표시
@@ -2579,7 +2855,7 @@
                 myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiCounterVy));
                 playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y });
 
-                // 경로상 적 피해
+                // 경로상 적 피해 (돌진 중 접촉 판정)
                 for (let id in players) {
                     if (id === myPlayerId || samuraiCounterHitIds.has(id)) continue;
                     const t = players[id];
@@ -2595,6 +2871,50 @@
 
                 samuraiCounterFrames--;
                 if (samuraiCounterFrames <= 0) {
+                    // ★ 돌진 종료 시 넓은 원형 범위 폭발 피해
+                    const COUNTER_BURST_RADIUS = 170;  // 워리어 360도 베기(WARRIOR_SPIN_RANGE)와 동일
+                    const cx = myPlayer.x + PLAYER_SIZE / 2;
+                    const cy = myPlayer.y + PLAYER_SIZE / 2;
+                    for (let id in players) {
+                        if (id === myPlayerId || samuraiCounterHitIds.has(id)) continue;
+                        const t = players[id];
+                        if (t.isSpectator || t.health <= 0) continue;
+                        const tx = t.x + PLAYER_SIZE / 2;
+                        const ty = t.y + PLAYER_SIZE / 2;
+                        const dist = Math.sqrt((cx - tx)**2 + (cy - ty)**2);
+                        if (dist < COUNTER_BURST_RADIUS) {
+                            samuraiCounterHitIds.add(id);
+                            dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty);
+                        }
+                    }
+                    // 피해 범위 원 표시 (Firebase로 모든 플레이어에게 공유)
+                    const burstNow = Date.now();
+                    samuraiSlashesRef.child('burst_' + myPlayerId).set({
+                        ownerId: myPlayerId, type: 'burst',
+                        x: cx, y: cy,
+                        radius: COUNTER_BURST_RADIUS,
+                        createdAt: burstNow
+                    });
+                    playerSamuraiSlashes['burst_' + myPlayerId] = {
+                        ownerId: myPlayerId, type: 'burst',
+                        x: cx, y: cy,
+                        radius: COUNTER_BURST_RADIUS,
+                        frames: 20, totalFrames: 20, createdAt: burstNow
+                    };
+                    // 내 burst도 매 프레임 감소 (updateSamurai 루프가 ownerId===myPlayerId 스킵하므로 직접 처리)
+                    const _burstKey = 'burst_' + myPlayerId;
+                    const _burstDecay = setInterval(() => {
+                        if (!playerSamuraiSlashes[_burstKey]) { clearInterval(_burstDecay); return; }
+                        playerSamuraiSlashes[_burstKey].frames--;
+                        if (playerSamuraiSlashes[_burstKey].frames <= 0) {
+                            clearInterval(_burstDecay);
+                        }
+                    }, 1000/60);
+                    setTimeout(() => {
+                        clearInterval(_burstDecay);
+                        samuraiSlashesRef.child('burst_' + myPlayerId).remove();
+                        delete playerSamuraiSlashes['burst_' + myPlayerId];
+                    }, 700);
                     samuraiCounterActive = false;
                     samuraiCounterHitIds.clear();
                     samuraiSlashesRef.child('counter_' + myPlayerId).remove();
@@ -2665,13 +2985,12 @@
             for (const key in playerSamuraiSlashes) {
                 const s = playerSamuraiSlashes[key];
                 if (s.ownerId === myPlayerId) continue;
-                if (s.type === 'counter') {
-                    s.frames--;
-                    if (s.frames <= 0) delete playerSamuraiSlashes[key];
-                } else {
+                // burst/counter/slash 모두 frames 감소
+                s.frames--;
+                if (s.frames <= 0) {
+                    delete playerSamuraiSlashes[key];
+                } else if (s.type !== 'counter' && s.type !== 'burst') {
                     s.progress = 1 - s.frames / s.totalFrames;
-                    s.frames--;
-                    if (s.frames <= 0) delete playerSamuraiSlashes[key];
                 }
             }
         }
@@ -2685,14 +3004,26 @@
             if (!target || target.isSpectator || target.health <= 0) return;
 
             // ── 사무라이 패링: HP 건드리기 전에 먼저 차단 ──
-            // target.samuraiParrying은 Firebase players 필드 → 항상 최신 상태
             if (target.samuraiParrying) {
-                // 공격자 클라이언트에서 HP를 건드리지 않고 튕겨냄
-                spawnHitEffect(hitX, hitY, false);
-                // 피격자에게 패링 히트 신호 전송 (피격자 클라이언트가 반격 트리거)
+                // 히트 이펙트 없음 (패링 막았는데 맞는 느낌 방지)
                 parryHitsRef.child(targetId).set({ targetId, createdAt: Date.now() });
                 setTimeout(() => parryHitsRef.child(targetId).remove(), 1000);
                 return;
+            }
+
+            // ── 허수아비 피격: 데미지/DPS 측정 ──
+            if (targetId === DUMMY_ID && gameMode === GAME_MODE.PRACTICE) {
+                const now = Date.now();
+                dummyDmgTotal += dmg;
+                dummyLastHit = dmg;
+                dummyDmgWindow.push({ time: now, dmg });
+                // 플로팅 데미지 숫자 생성
+                dummyFloatingNums.push({
+                    x: hitX, y: hitY,
+                    dmg, life: 1.0, vy: -1.5
+                });
+                spawnHitEffect(hitX, hitY, false);
+                return; // 허수아비는 HP 변경 없음
             }
 
             const newHp = Math.max(0, target.health - dmg);
@@ -2700,6 +3031,55 @@
             playersRef.child(targetId).update({ health: newHp });
             if (isFatal) playersRef.child(targetId).update({ isSpectator: true });
             spawnHitEffect(hitX, hitY, isFatal);
+        }
+
+        // ── 허수아비 DPS 계산 업데이트 ──
+        function updateDummyDps() {
+            const now = Date.now();
+            dummyDmgWindow = dummyDmgWindow.filter(e => now - e.time <= 1000);
+            dummyDps = dummyDmgWindow.reduce((sum, e) => sum + e.dmg, 0);
+        }
+
+        // ── 허수아비 플로팅 데미지 숫자 업데이트 ──
+        function updateDummyFloatingNums() {
+            for (let i = dummyFloatingNums.length - 1; i >= 0; i--) {
+                const n = dummyFloatingNums[i];
+                n.y += n.vy;
+                n.life -= 0.03;
+                if (n.life <= 0) dummyFloatingNums.splice(i, 1);
+            }
+        }
+
+        // ── 허수아비 총알 발사 (아래 방향 고정, 느림) ──
+        function updateDummyShoot() {
+            if (!players[DUMMY_ID]) return;
+            dummyShootTimer++;
+            if (dummyShootTimer < DUMMY_SHOOT_INTERVAL) return;
+            dummyShootTimer = 0;
+            const dummy = players[DUMMY_ID];
+            const startX = dummy.x + PLAYER_SIZE / 2;
+            const startY = dummy.y + PLAYER_SIZE / 2;
+            // 아래 방향 고정
+            const dirX = 0;
+            const dirY = 1;
+            const now = Date.now();
+            const bulletData = {
+                id: DUMMY_ID + '_bullet_' + now,
+                x: startX,
+                y: startY + PLAYER_SIZE,
+                vx: dirX * DUMMY_BULLET_SPEED,
+                vy: dirY * DUMMY_BULLET_SPEED,
+                damage: DUMMY_BULLET_DMG,
+                ownerId: DUMMY_ID,
+                createdAt: now,
+                maxLifetime: 5000,
+                isSkillBullet: false,
+                isDummyBullet: true
+            };
+            bulletIds.add(bulletData.id);
+            bullets.push(bulletData);
+            bulletsRef.child(bulletData.id).set(bulletData);
+            setTimeout(() => bulletsRef.child(bulletData.id).remove(), 5500);
         }
 
         // ── 패링 반격 트리거 ──
@@ -2742,6 +3122,63 @@
             }
         }
 
+        // ========== 주몽 업데이트 ==========
+        function updateJumong() {
+            // 호크아이 만료 체크
+            if (jumongHawkeyeActive && Date.now() > jumongHawkeyeEnd) {
+                jumongHawkeyeActive = false;
+                if (myPlayerId) playersRef.child(myPlayerId).update({ jumongHawkeye: false });
+            }
+            // 다른 플레이어 화살 시각 이펙트 페이드
+            for (const id in playerJumongArrows) {
+                const a = playerJumongArrows[id];
+                a.x += a.vx;
+                a.y += a.vy;
+                const elapsed = Date.now() - a.createdAt;
+                a.life = Math.max(0, 1 - elapsed / a.maxLifetime);
+                if (a.life <= 0) delete playerJumongArrows[id];
+            }
+        }
+
+        // ========== 무희 업데이트 ==========
+        function updateMuhui() {
+            if (!muhuiZoneActive || !myPlayerId || !players[myPlayerId] || myClass !== 'muhui') return;
+
+            const myPlayer = players[myPlayerId];
+            const nx = myPlayer.x + PLAYER_SIZE / 2;
+            const ny = myPlayer.y + PLAYER_SIZE / 2;
+
+            // 장판 위치를 플레이어 위치로 매 프레임 갱신 (로컬)
+            if (playerMuhuiZones[myPlayerId]) {
+                playerMuhuiZones[myPlayerId].x = nx;
+                playerMuhuiZones[myPlayerId].y = ny;
+            }
+            // Firebase에 위치 실시간 업데이트 (30프레임마다 = ~0.5초)
+            muhuiZoneDmgTimer++;
+            if (muhuiZoneDmgTimer % 30 === 0) {
+                muhuiZonesRef.child(myPlayerId).update({ x: nx, y: ny });
+            }
+
+            // 1초(60프레임)마다 피해 틱
+            if (muhuiZoneDmgTimer >= 60) {
+                muhuiZoneDmgTimer = 0;
+                const zone = playerMuhuiZones[myPlayerId];
+                if (zone) {
+                    for (let id in players) {
+                        if (id === myPlayerId) continue;
+                        const t = players[id];
+                        if (t.isSpectator || t.health <= 0) continue;
+                        const tx = t.x + PLAYER_SIZE / 2;
+                        const ty = t.y + PLAYER_SIZE / 2;
+                        const dist = Math.sqrt((tx - nx)**2 + (ty - ny)**2);
+                        if (dist < zone.radius + PLAYER_SIZE / 2) {
+                            dealDamage(id, MUHUI_ZONE_DPS, tx, ty);
+                        }
+                    }
+                }
+            }
+        }
+
         // ========== 총알 업데이트 ==========
         function updateBullets() {
             const now = Date.now();
@@ -2765,7 +3202,23 @@
                     continue;
                 }
 
-                // ===== 충돌 감지 (총알 발사자만 처리) =====
+                // ===== 충돌 감지 =====
+                // 허수아비 총알
+                if (bullet.ownerId === DUMMY_ID && bullet.isDummyBullet) {
+                    if (myPlayerId && players[myPlayerId] && isAlive) {
+                        const me = players[myPlayerId];
+                        const tx = me.x + PLAYER_SIZE / 2;
+                        const ty = me.y + PLAYER_SIZE / 2;
+                        const dist = Math.sqrt((bullet.x - tx)**2 + (bullet.y - ty)**2);
+                        if (dist < PLAYER_SIZE / 2 + 6) {
+                            dealDamage(myPlayerId, bullet.damage, bullet.x, bullet.y);
+                            bulletsRef.child(bullet.id).remove();
+                            bulletIds.delete(bullet.id);
+                            bullets.splice(i, 1);
+                        }
+                    }
+                    continue;
+                }
                 if (bullet.ownerId !== myPlayerId) continue;
                 for (let id in players) {
                     if (id === bullet.ownerId) continue;
@@ -2892,9 +3345,13 @@
                 myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y));
             }
             
-            // 카메라 업데이트
-            cameraX = myPlayer.x - canvas.width / 2 + PLAYER_SIZE / 2;
+            // 카메라 업데이트 (항상 플레이어 중앙, 줌은 render()에서 ctx.scale로만 처리)
+            cameraX = myPlayer.x - canvas.width  / 2 + PLAYER_SIZE / 2;
             cameraY = myPlayer.y - canvas.height / 2 + PLAYER_SIZE / 2;
+            // 줌 보간 (부드러운 슈욱 효과)
+            const _lerpSpeed = 0.06;
+            jumongCurrentZoom += (jumongTargetZoom - jumongCurrentZoom) * _lerpSpeed;
+            if (Math.abs(jumongCurrentZoom - jumongTargetZoom) < 0.001) jumongCurrentZoom = jumongTargetZoom;
             
             if (moved) {
                 playersRef.child(myPlayerId).update({
@@ -2922,33 +3379,60 @@
             updateParticles();
             updateHitEffects();
             updateCooldownHUD();
+            if (gameMode === GAME_MODE.PRACTICE) {
+                updateDummyDps();
+                updateDummyShoot();
+                updateDummyFloatingNums();
+            }
+            updateJumong();
+            updateMuhui();
         }
 
         function render() {
-            // 배경
+            // ── 줌 계산 ──
+            // _z: 현재 줌 배율 (1.0 = 기본, >1 = 시야 확대)
+            // cameraX_r: 줌 반영 카메라 오프셋
+            //   플레이어가 항상 화면 중앙이 되려면:
+            //   ctx.scale(1/_z) 적용 후 (worldX - cameraX_r) 가 canvas.width/2 이 되어야 함
+            //   → cameraX_r = player.x - canvas.width*_z/2
+            const _z = jumongCurrentZoom;
+            let cameraX_r = cameraX;
+            let cameraY_r = cameraY;
+            if (_z !== 1.0 && myPlayerId && players[myPlayerId]) {
+                cameraX_r = players[myPlayerId].x + PLAYER_SIZE / 2 - (canvas.width  * _z) / 2;
+                cameraY_r = players[myPlayerId].y + PLAYER_SIZE / 2 - (canvas.height * _z) / 2;
+            }
+
+            // 배경 (scale 전, 항상 전체 화면)
             ctx.fillStyle = '#0f3460';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 맵 좌표
-            const mapScreenX = -cameraX;
-            const mapScreenY = -cameraY;
+            // 게임 씬 전체에 줌 scale 적용 (save/restore로 HUD와 분리)
+            ctx.save();
+            if (_z !== 1.0) {
+                ctx.scale(1 / _z, 1 / _z);
+            }
 
-            // 그리드 (카메라 오프셋 적용)
+            // 맵 좌표 (스케일 공간 기준)
+            const mapScreenX = -cameraX_r;
+            const mapScreenY = -cameraY_r;
+
+            // 그리드 (스케일 공간에서 보이는 월드 범위)
             ctx.strokeStyle = 'rgba(0, 255, 245, 0.1)';
             ctx.lineWidth = 1;
             const gridSize = 50;
-            const startX = Math.floor(cameraX / gridSize) * gridSize;
-            const startY = Math.floor(cameraY / gridSize) * gridSize;
-            for (let x = startX; x < cameraX + canvas.width; x += gridSize) {
+            const startX = Math.floor(cameraX_r / gridSize) * gridSize;
+            const startY = Math.floor(cameraY_r / gridSize) * gridSize;
+            for (let x = startX; x < cameraX_r + canvas.width * _z; x += gridSize) {
                 ctx.beginPath();
-                ctx.moveTo(x - cameraX, 0);
-                ctx.lineTo(x - cameraX, canvas.height);
+                ctx.moveTo(x - cameraX_r, 0);
+                ctx.lineTo(x - cameraX_r, canvas.height * _z);
                 ctx.stroke();
             }
-            for (let y = startY; y < cameraY + canvas.height; y += gridSize) {
+            for (let y = startY; y < cameraY_r + canvas.height * _z; y += gridSize) {
                 ctx.beginPath();
-                ctx.moveTo(0, y - cameraY);
-                ctx.lineTo(canvas.width, y - cameraY);
+                ctx.moveTo(0, y - cameraY_r);
+                ctx.lineTo(canvas.width * _z, y - cameraY_r);
                 ctx.stroke();
             }
 
@@ -2958,13 +3442,60 @@
             ctx.lineWidth = 3;
             ctx.strokeRect(mapScreenX, mapScreenY, MAP_W, MAP_H);
             // 맵 밖 오버레이
+            const _vW = canvas.width * _z;
+            const _vH = canvas.height * _z;
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            if (mapScreenY > 0) ctx.fillRect(0, 0, canvas.width, mapScreenY);
-            if (mapScreenY + MAP_H < canvas.height) ctx.fillRect(0, mapScreenY + MAP_H, canvas.width, canvas.height - mapScreenY - MAP_H);
+            if (mapScreenY > 0) ctx.fillRect(0, 0, _vW, mapScreenY);
+            if (mapScreenY + MAP_H < _vH) ctx.fillRect(0, mapScreenY + MAP_H, _vW, _vH - mapScreenY - MAP_H);
             if (mapScreenX > 0) ctx.fillRect(0, mapScreenY, mapScreenX, MAP_H);
-            if (mapScreenX + MAP_W < canvas.width) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, canvas.width - mapScreenX - MAP_W, MAP_H);
+            if (mapScreenX + MAP_W < _vW) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, _vW - mapScreenX - MAP_W, MAP_H);
             ctx.restore();
             
+            // ── 무희 장판 (플레이어 아래에 표시) ──
+            for (const ownerId in playerMuhuiZones) {
+                const zone = playerMuhuiZones[ownerId];
+                const elapsed = Date.now() - zone.createdAt;
+                const remaining = Math.max(0, zone.duration - elapsed);
+                const lifeRatio = remaining / zone.duration;
+                if (lifeRatio <= 0) continue;
+                const zx = zone.x - cameraX_r;
+                const zy = zone.y - cameraY_r;
+                ctx.save();
+                const wave = 0.08 * Math.sin(Date.now() / 220);
+                // 채우기 (매우 연하게)
+                ctx.globalAlpha = 0.13 + wave;
+                ctx.fillStyle = '#ffaadd';
+                ctx.shadowColor = '#ff88cc';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.arc(zx, zy, zone.radius, 0, Math.PI * 2);
+                ctx.fill();
+                // 테두리 (연한 점선 느낌)
+                ctx.globalAlpha = 0.35 + wave;
+                ctx.strokeStyle = '#ffccee';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.setLineDash([8, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                // 남은 시간 호 (연한 테두리)
+                ctx.globalAlpha = 0.5;
+                ctx.strokeStyle = '#ff99cc';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(zx, zy, zone.radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeRatio);
+                ctx.stroke();
+                // 남은 시간 텍스트
+                ctx.globalAlpha = 0.7;
+                ctx.fillStyle = '#ffddee';
+                ctx.font = '11px Malgun Gothic';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 4;
+                ctx.fillText('🌸 ' + (remaining / 1000).toFixed(1) + 's', zx, zy + zone.radius + 14);
+                ctx.restore();
+            }
+
             // 모든 플레이어 그리기
             for (let id in players) {
                 const player = players[id];
@@ -2977,11 +3508,11 @@
                 // 어쌔신 은신: 내가 아닌 플레이어에게 보이지 않음
                 if (!isMe && player.stealthed) continue;
                 
-                const screenX = player.x - cameraX;
-                const screenY = player.y - cameraY;
+                const screenX = player.x - cameraX_r;
+                const screenY = player.y - cameraY_r;
                 
-                if (screenX < -PLAYER_SIZE || screenX > canvas.width || 
-                    screenY < -PLAYER_SIZE || screenY > canvas.height) {
+                if (screenX < -PLAYER_SIZE || screenX > canvas.width * _z + PLAYER_SIZE ||
+                    screenY < -PLAYER_SIZE || screenY > canvas.height * _z + PLAYER_SIZE) {
                     continue;
                 }
                 
@@ -3168,11 +3699,11 @@
                 // 내 찌르기는 실시간 위치 사용, 다른 플레이어는 Firebase 전송 위치 사용
                 let scx, scy;
                 if (id === myPlayerId && players[myPlayerId]) {
-                    scx = players[myPlayerId].x + PLAYER_SIZE / 2 - cameraX;
-                    scy = players[myPlayerId].y + PLAYER_SIZE / 2 - cameraY;
+                    scx = players[myPlayerId].x + PLAYER_SIZE / 2 - cameraX_r;
+                    scy = players[myPlayerId].y + PLAYER_SIZE / 2 - cameraY_r;
                 } else {
-                    scx = stab.x - cameraX;
-                    scy = stab.y - cameraY;
+                    scx = stab.x - cameraX_r;
+                    scy = stab.y - cameraY_r;
                 }
                 ctx.save();
                 ctx.strokeStyle = '#cc99ff';
@@ -3195,8 +3726,8 @@
 
             // ── 어쌔신 연기 파티클 ──
             for (const p of assassinSmokeParticles) {
-                const sx = p.x - cameraX;
-                const sy = p.y - cameraY;
+                const sx = p.x - cameraX_r;
+                const sy = p.y - cameraY_r;
                 if (sx < -80 || sx > canvas.width + 80 || sy < -80 || sy > canvas.height + 80) continue;
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, p.life * 0.55);
@@ -3212,8 +3743,8 @@
                 const sw = playerSwings[id];
                 const owner = players[id];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
-                const sx = owner.x - cameraX + PLAYER_SIZE / 2;
-                const sy = owner.y - cameraY + PLAYER_SIZE / 2;
+                const sx = owner.x - cameraX_r + PLAYER_SIZE / 2;
+                const sy = owner.y - cameraY_r + PLAYER_SIZE / 2;
                 const isSpinAtk = (sw.arc >= Math.PI * 1.9);
                 const halfArc = sw.arc / 2;
                 const progress = 1 - sw.frames / sw.totalFrames;
@@ -3245,8 +3776,8 @@
                 const owner = players[id];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
                 // 내 플레이어든 상대방이든 항상 실시간 owner 위치 기준으로 렌더링
-                const cx = owner.x + PLAYER_SIZE / 2 - cameraX;
-                const cy = owner.y + PLAYER_SIZE / 2 - cameraY;
+                const cx = owner.x + PLAYER_SIZE / 2 - cameraX_r;
+                const cy = owner.y + PLAYER_SIZE / 2 - cameraY_r;
 
                 const elapsed = h.totalFrames - h.frames;
                 const progress = elapsed / h.totalFrames;
@@ -3276,10 +3807,45 @@
             // ── 사무라이 찌르기 / 반격 이펙트 ──
             for (const key in playerSamuraiSlashes) {
                 const s = playerSamuraiSlashes[key];
+
+                // ── burst는 owner 체크 없이 독립 렌더링 ──
+                if (s.type === 'burst') {
+                    const bprog = 1 - s.frames / s.totalFrames;
+                    const bAlpha = Math.max(0, 0.88 - bprog * 0.95);
+                    const bx = s.x - cameraX_r;
+                    const by = s.y - cameraY_r;
+                    const bRadius = s.radius;
+                    ctx.save();
+                    ctx.globalAlpha = bAlpha;
+                    ctx.strokeStyle = '#ff6666';
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#ff2222';
+                    ctx.shadowBlur = 14;
+                    // 호 (360도 베기처럼 원형 궤적)
+                    ctx.beginPath();
+                    ctx.arc(bx, by, bRadius, 0, Math.PI * 2 * bprog);
+                    ctx.stroke();
+                    // 검날선
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    const bAngle = Math.PI * 2 * bprog;
+                    ctx.lineTo(bx + Math.cos(bAngle) * bRadius, by + Math.sin(bAngle) * bRadius);
+                    ctx.stroke();
+                    // 내부 연한 채우기
+                    ctx.globalAlpha = bAlpha * 0.10;
+                    ctx.fillStyle = '#ff4444';
+                    ctx.beginPath();
+                    ctx.arc(bx, by, bRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    continue;
+                }
+
                 const owner = players[s.ownerId];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
-                const sx = owner.x + PLAYER_SIZE / 2 - cameraX;
-                const sy = owner.y + PLAYER_SIZE / 2 - cameraY;
+                const sx = owner.x + PLAYER_SIZE / 2 - cameraX_r;
+                const sy = owner.y + PLAYER_SIZE / 2 - cameraY_r;
                 const progress = s.progress !== undefined ? s.progress : (1 - s.frames / (s.totalFrames || SAMURAI_SLASH_TOTAL));
 
                 ctx.save();
@@ -3294,14 +3860,6 @@
                     ctx.beginPath();
                     ctx.moveTo(sx, sy);
                     ctx.lineTo(sx + Math.cos(s.dir + Math.PI) * 55, sy + Math.sin(s.dir + Math.PI) * 55);
-                    ctx.stroke();
-                    // 앞쪽 충격 원
-                    ctx.globalAlpha = Math.max(0, 0.6 - progress * 0.7);
-                    ctx.strokeStyle = '#ffaaaa';
-                    ctx.lineWidth = 3;
-                    ctx.shadowBlur = 14;
-                    ctx.beginPath();
-                    ctx.arc(sx + Math.cos(s.dir) * 18, sy + Math.sin(s.dir) * 18, 18, 0, Math.PI * 2);
                     ctx.stroke();
                 } else {
                     // 찌르기 — 사각형 궤적 (차징 레벨별 크기)
@@ -3322,8 +3880,8 @@
 
             // 파티클 (대쉬 먼지/잔상) 그리기
             for (const p of particles) {
-                const sx = p.x - cameraX;
-                const sy = p.y - cameraY;
+                const sx = p.x - cameraX_r;
+                const sy = p.y - cameraY_r;
                 // 화면 밖 스킵
                 if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
                 ctx.save();
@@ -3337,8 +3895,8 @@
 
             // 히트 이펙트 그리기
             for (const e of hitEffects) {
-                const sx = e.x - cameraX;
-                const sy = e.y - cameraY;
+                const sx = e.x - cameraX_r;
+                const sy = e.y - cameraY_r;
                 // 화면 밖 스킵
                 if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
                 ctx.save();
@@ -3353,36 +3911,167 @@
             }
 
             // 화면 플래시 (피격 시)
+            // (화면 플래시는 HUD 섹션으로 이동)
+
+            // 총알 그리기
+            for (let bullet of bullets) {
+                const screenX = bullet.x - cameraX_r;
+                const screenY = bullet.y - cameraY_r;
+                
+                if (screenX < -20 || screenX > canvas.width * _z + 20 ||
+                    screenY < -20 || screenY > canvas.height * _z + 20) {
+                    continue;
+                }
+                
+                if (bullet.isDummyBullet) {
+                    ctx.fillStyle = '#88aaff';
+                    ctx.shadowColor = '#4466ff';
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#aaccff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                } else if (bullet.isArrow) {
+                    // 주몽 화살 — 길고 녹색 선분
+                    ctx.save();
+                    ctx.strokeStyle = '#55ff88';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#00ff44';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    const aDir = bullet.angle || Math.atan2(bullet.vy, bullet.vx);
+                    ctx.moveTo(screenX - Math.cos(aDir) * 14, screenY - Math.sin(aDir) * 14);
+                    ctx.lineTo(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14);
+                    ctx.stroke();
+                    // 화살촉 점
+                    ctx.fillStyle = '#ccffdd';
+                    ctx.beginPath();
+                    ctx.arc(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else if (bullet.isPetal) {
+                    // 무희 벚꽃비수 — 작은 핑크 꽃
+                    ctx.save();
+                    ctx.fillStyle = '#ff88cc';
+                    ctx.shadowColor = '#ff44aa';
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffbbee';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    ctx.restore();
+                } else {
+                    ctx.fillStyle = bullet.isSkillBullet ? '#ff0000' : '#ffff00';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, bullet.isSkillBullet ? 6 : 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = bullet.isSkillBullet ? '#ff6666' : '#ffff99';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+            
+            // (조준선은 HUD 섹션에서 그림)
+
+            // (관전 UI는 HUD 섹션으로 이동)
+
+            // ── 연습 모드: 허수아비 DPS 패널 ──
+            if (gameMode === GAME_MODE.PRACTICE && players[DUMMY_ID]) {
+                const dummy = players[DUMMY_ID];
+                const dsx = dummy.x + PLAYER_SIZE / 2 - cameraX_r;
+                const dsy = dummy.y + PLAYER_SIZE / 2 - cameraY_r;
+
+                // 플로팅 데미지 숫자
+                for (const fn of dummyFloatingNums) {
+                    const fx = fn.x - cameraX_r;
+                    const fy = fn.y - cameraY_r;
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, fn.life);
+                    ctx.font = `bold ${14 + Math.floor(fn.dmg / 10)}px Malgun Gothic`;
+                    ctx.fillStyle = fn.dmg >= 30 ? '#ff4444' : '#ffdd44';
+                    ctx.shadowColor = fn.dmg >= 30 ? '#ff0000' : '#ffaa00';
+                    ctx.shadowBlur = 8;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('-' + fn.dmg, fx, fy);
+                    ctx.restore();
+                }
+
+                // 측정 패널 (허수아비 오른쪽)
+                const panelX = dsx + PLAYER_SIZE + 10;
+                const panelY = dsy - 75;
+                const panelW = 160;
+                const panelH = 115;
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.strokeStyle = '#ff8844';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(panelX, panelY, panelW, panelH, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = 'bold 13px Malgun Gothic';
+                ctx.textAlign = 'left';
+
+                ctx.fillStyle = '#ffaa44';
+                ctx.fillText('📊 전투 측정', panelX + 10, panelY + 20);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px Malgun Gothic';
+                ctx.fillText('누적 피해:', panelX + 10, panelY + 42);
+                ctx.fillStyle = '#ff6666';
+                ctx.font = 'bold 14px Malgun Gothic';
+                ctx.fillText(dummyDmgTotal.toLocaleString(), panelX + 95, panelY + 42);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px Malgun Gothic';
+                ctx.fillText('DPS:', panelX + 10, panelY + 66);
+                const dpsColor = dummyDps > 100 ? '#ff4444' : dummyDps > 50 ? '#ffaa44' : '#44ff88';
+                ctx.fillStyle = dpsColor;
+                ctx.font = 'bold 15px Malgun Gothic';
+                ctx.fillText(Math.round(dummyDps), panelX + 95, panelY + 66);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px Malgun Gothic';
+                ctx.fillText('마지막 피해:', panelX + 10, panelY + 90);
+                ctx.fillStyle = dummyLastHit >= 30 ? '#ff4444' : '#ffdd44';
+                ctx.font = 'bold 14px Malgun Gothic';
+                ctx.fillText(dummyLastHit > 0 ? dummyLastHit : '-', panelX + 95, panelY + 90);
+
+                // 리셋 힌트
+                ctx.fillStyle = '#888';
+                ctx.font = '11px Malgun Gothic';
+                ctx.fillText('[Tab] 측정 초기화', panelX + 10, panelY + 108);
+
+                ctx.restore();
+            }
+
+
+
+            // 게임 씬 ctx.save() 닫기 (이후는 모두 화면 좌표 HUD)
+            ctx.restore();
+
+            // ══════════════════════════════════════
+            // HUD 섹션 (ctx.scale 해제 후, 항상 화면 좌표)
+            // ══════════════════════════════════════
+
+            // ── 화면 플래시 ──
             if (screenFlashColor && Date.now() < screenFlashEnd) {
-                const prog = (screenFlashEnd - Date.now()) / (screenFlashEnd - Date.now() + 50);
                 ctx.fillStyle = screenFlashColor;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else {
                 screenFlashColor = null;
             }
 
-            // 총알 그리기
-            for (let bullet of bullets) {
-                const screenX = bullet.x - cameraX;
-                const screenY = bullet.y - cameraY;
-                
-                if (screenX < -20 || screenX > canvas.width + 20 || 
-                    screenY < -20 || screenY > canvas.height + 20) {
-                    continue;
-                }
-                
-                ctx.fillStyle = bullet.isSkillBullet ? '#ff0000' : '#ffff00';
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, bullet.isSkillBullet ? 6 : 4, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.strokeStyle = bullet.isSkillBullet ? '#ff6666' : '#ffff99';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-            
-            // 마우스 커서 위치에 조준선 그리기
+            // ── 조준선 (화면 좌표 기준) ──
             if (myPlayerId && players[myPlayerId] && !isSpectating && isAlive) {
+                ctx.save();
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -3394,52 +4083,60 @@
                 ctx.beginPath();
                 ctx.arc(mouseX, mouseY, 8, 0, Math.PI * 2);
                 ctx.stroke();
+                ctx.restore();
             }
 
-            // 관전 UI
-            if (isSpectating || !isAlive) {
-                // 반투명 상단 배너
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-                ctx.fillRect(0, 0, canvas.width, 50);
-
-                ctx.fillStyle = '#00fff5';
-                ctx.font = 'bold 18px Malgun Gothic';
-                ctx.textAlign = 'center';
-
-                if (spectateTargetId && players[spectateTargetId]) {
-                    const targetName = players[spectateTargetId].nickname;
-                    ctx.fillText(`👁 관전 중: ${targetName}`, canvas.width / 2, 32);
-                } else {
-                    ctx.fillStyle = '#aaa';
-                    ctx.fillText('👁 관전 중 — 살아있는 플레이어 없음', canvas.width / 2, 32);
-                }
-            }
-
-            // R키 강제 종료 진행 바
+            // ── R키 강제 종료 진행 바 ──
             if (rKeyHolding && forceStopProgress > 0) {
                 const barWidth = 300;
                 const barHeight = 24;
                 const barX = canvas.width / 2 - barWidth / 2;
                 const barY = canvas.height - 60;
-
-                // 배경
                 ctx.fillStyle = 'rgba(0,0,0,0.7)';
                 ctx.fillRect(barX - 5, barY - 5, barWidth + 10, barHeight + 10);
-
-                // 진행 바
                 ctx.fillStyle = '#ff4444';
                 ctx.fillRect(barX, barY, barWidth * (forceStopProgress / 100), barHeight);
-
-                // 테두리
                 ctx.strokeStyle = '#ff0000';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-                // 텍스트
                 ctx.fillStyle = '#fff';
                 ctx.font = 'bold 14px Malgun Gothic';
                 ctx.textAlign = 'center';
                 ctx.fillText(`⚠ 게임 강제 종료 중... ${Math.ceil(3 - (forceStopProgress / 100) * 3)}초`, canvas.width / 2, barY + 17);
+            }
+
+            // ── 관전 UI ──
+            if (isSpectating || !isAlive) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(0, 0, canvas.width, 50);
+                ctx.fillStyle = '#00fff5';
+                ctx.font = 'bold 18px Malgun Gothic';
+                ctx.textAlign = 'center';
+                if (spectateTargetId && players[spectateTargetId]) {
+                    ctx.fillText(`👁 관전 중: ${players[spectateTargetId].nickname}`, canvas.width / 2, 32);
+                } else {
+                    ctx.fillStyle = '#aaa';
+                    ctx.fillText('👁 관전 중 — 살아있는 플레이어 없음', canvas.width / 2, 32);
+                }
+                ctx.restore();
+            }
+
+            // ── 주몽 호크아이 HUD ──
+            if (myClass === 'jumong' && jumongHawkeyeActive) {
+                const remaining = Math.max(0, jumongHawkeyeEnd - Date.now());
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0,255,80,0.4)';
+                ctx.lineWidth = 5;
+                ctx.shadowColor = '#00ff44';
+                ctx.shadowBlur = 16;
+                ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+                ctx.fillStyle = '#88ffaa';
+                ctx.font = 'bold 15px Malgun Gothic';
+                ctx.textAlign = 'left';
+                ctx.shadowBlur = 8;
+                ctx.fillText(`🦅 호크아이 ${(remaining/1000).toFixed(1)}s`, 16, 70);
+                ctx.restore();
             }
         }
 
