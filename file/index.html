@@ -1,0 +1,3471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LNG OF LEGEND</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        /* 공통 화면 스타일 */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .box {
+            background: #16213e;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        h1 {
+            color: #00fff5;
+            margin-bottom: 30px;
+            font-size: 32px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        h2 {
+            color: #00fff5;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #00fff5;
+            background: #0f3460;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            background: #00fff5;
+            color: #16213e;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #00d4cc;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        /* 닉네임 화면 */
+        #nicknameScreen .box {
+            min-width: 400px;
+        }
+
+        /* 직업 선택 화면 */
+        #classScreen .box {
+            min-width: 600px;
+            max-width: 700px;
+            padding: 30px;
+        }
+
+        .class-swiper {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .class-slider {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            height: 100%;
+        }
+
+        .class-slide {
+            min-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 40px;
+        }
+
+        .class-card {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            border: 3px solid #00fff5;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 255, 255, 0.3);
+        }
+
+        .class-card h3 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00fff5;
+        }
+
+        .class-card .class-icon {
+            font-size: 64px;
+            margin: 15px 0;
+        }
+
+        .class-card .description {
+            color: #aaa;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+
+        .class-card .stats {
+            text-align: left;
+            font-size: 15px;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .class-card .stats div {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: rgba(0, 255, 245, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid #00fff5;
+        }
+
+        .swiper-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 255, 245, 0.2);
+            border: 2px solid #00fff5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            font-size: 24px;
+            color: #00fff5;
+            user-select: none;
+        }
+
+        .swiper-nav:hover {
+            background: rgba(0, 255, 245, 0.4);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .swiper-nav.prev {
+            left: 10px;
+        }
+
+        .swiper-nav.next {
+            right: 10px;
+        }
+
+        .swiper-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .swiper-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .swiper-dot.active {
+            background: #00fff5;
+            width: 30px;
+            border-radius: 6px;
+        }
+
+        /* 방 선택 화면 */
+        #roomScreen .box {
+            min-width: 480px;
+            max-width: 560px;
+        }
+
+        .room-list {
+            max-height: 320px;
+            overflow-y: auto;
+            margin: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .room-item {
+            background: #0f3460;
+            border: 2px solid rgba(0,255,245,0.3);
+            border-radius: 8px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .room-item:hover {
+            border-color: #00fff5;
+            background: rgba(0,255,245,0.1);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 255, 245, 0.2);
+        }
+
+        .room-item .room-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .room-item .room-host {
+            font-weight: bold;
+            font-size: 16px;
+            color: #00fff5;
+        }
+
+        .room-item .room-count {
+            font-size: 13px;
+            color: #aaa;
+        }
+        .room-empty {
+            color: #555;
+            font-size: 14px;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .room-create-btn {
+            width: 100%;
+            margin: 0;
+            padding: 14px;
+            font-size: 16px;
+            background: #16213e;
+            color: #00fff5;
+            border: 2px solid #00fff5;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .room-create-btn:hover {
+            background: #00fff5;
+            color: #16213e;
+        }
+
+        /* 대기실 화면 */
+        #lobbyScreen .box {
+            min-width: 700px;
+            max-width: 900px;
+        }
+
+        .lobby-info {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .player-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .lobby-player {
+            background: #0f3460;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+
+        .lobby-player.ready {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .lobby-player.host {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .lobby-player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lobby-player-class {
+            background: rgba(0, 255, 245, 0.2);
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .lobby-player-status {
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .lobby-player-status.ready {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .lobby-player-status.waiting {
+            background: #ff9800;
+            color: #000;
+        }
+
+        .lobby-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        /* 게임 대기 화면 */
+        #waitingScreen .box {
+            min-width: 500px;
+        }
+
+        .waiting-message {
+            font-size: 20px;
+            margin: 20px 0;
+            color: #00fff5;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #0f3460;
+            border-top-color: #00fff5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 게임 화면 */
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            background: #0f3460;
+            border: 3px solid #16213e;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(22, 33, 62, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00fff5;
+            min-width: 250px;
+        }
+
+        #info h3 {
+            color: #00fff5;
+            margin-bottom: 15px;
+        }
+
+        #info p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        #playerList {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 33, 62, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00fff5;
+            min-width: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #playerList h3 {
+            color: #00fff5;
+            margin-bottom: 15px;
+        }
+
+        .player-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(0, 255, 245, 0.1);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #fff;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(22, 33, 62, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00fff5;
+        }
+
+        #controls p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #ff4757;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .loading {
+            color: #00fff5;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 닉네임 입력 화면 -->
+    <div id="nicknameScreen" class="screen active">
+        <div class="box">
+            <h1>⚔️ LNG OF LEGEND</h1>
+            <p style="color: #aaa; margin-bottom: 20px;">닉네임을 입력하세요</p>
+            <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
+            <button id="nicknameNextBtn">다음</button>
+            <p class="error" id="nicknameError"></p>
+        </div>
+    </div>
+
+    <!-- 직업 선택 화면 -->
+    <div id="classScreen" class="screen">
+        <div class="box">
+            <h1>⚔️ 직업 선택</h1>
+            <p style="color: #aaa; margin-bottom: 10px;">좌우로 넘겨 직업을 선택하세요</p>
+            <div class="class-swiper">
+                <div class="class-slider" id="classSlider">
+                    <!-- 직업 슬라이드가 동적으로 생성됩니다 -->
+                </div>
+                <div class="swiper-nav prev" id="swiperPrev">‹</div>
+                <div class="swiper-nav next" id="swiperNext">›</div>
+            </div>
+            <div class="swiper-dots" id="swiperDots"></div>
+            <button id="classSelectBtn" disabled>선택 완료</button>
+            <p class="error" id="classError"></p>
+        </div>
+    </div>
+
+    <!-- 방 선택 화면 -->
+    <div id="roomScreen" class="screen">
+        <div class="box">
+            <h1>🏠 방 선택</h1>
+            <p style="color:#aaa; margin-bottom:4px; font-size:14px;">방을 선택하거나 새로 만드세요</p>
+            <div class="room-list" id="roomList">
+                <div class="room-empty">불러오는 중...</div>
+            </div>
+            <button class="room-create-btn" id="createRoomBtn">+ 새 방 만들기</button>
+            <p class="error" id="roomError" style="margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <!-- 대기실 화면 -->
+    <div id="lobbyScreen" class="screen">
+        <div class="box">
+            <h1 id="lobbyTitle">🏠 대기실</h1>
+            <div class="lobby-info">
+                <p>접속 인원: <span id="lobbyPlayerCount">0</span>명</p>
+                <p id="hostIndicator" style="color: #ffd700; display: none;">👑 당신은 방장입니다</p>
+            </div>
+            <h2>플레이어 목록</h2>
+            <div class="player-list" id="lobbyPlayerList">
+                <!-- 플레이어 목록이 여기 동적으로 추가됩니다 -->
+            </div>
+            <div class="lobby-buttons">
+                <button id="readyBtn">준비 완료</button>
+                <button id="startBtn" style="display: none;" disabled>게임 시작</button>
+                <button id="practiceBtn" style="display: none; background: #9b59b6;">연습 모드</button>
+            </div>
+            <p class="error" id="lobbyError"></p>
+        </div>
+    </div>
+
+    <!-- 게임 화면 -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+    </div>
+
+    <div id="info">
+        <h3>📊 게임 정보</h3>
+        <p>닉네임: <span id="myNickname">-</span></p>
+        <p>직업: <span id="myClass">-</span></p>
+        <p>체력: <span id="myHealth">-</span></p>
+        <p>접속 인원: <span id="playerCount">0</span>명</p>
+    </div>
+
+    <div id="playerList">
+        <h3>👥 플레이어</h3>
+        <div id="playerListContent"></div>
+    </div>
+
+    <div id="controls">
+        <h3 style="color: #00fff5; margin-bottom: 10px;">&#127918; 조작법</h3>
+        <p>&#9000; WASD: 이동</p>
+        <p>&#128432; 좌클릭: 기본 공격</p>
+        <p>&#128432; 우클릭: <span id="skillActionLabel">스킬</span></p>
+        <p>Shift: 대쉬</p>
+        <p style="color: #ff4444;">R 3초: 강제 종료</p>
+        <hr style="border-color: #00fff5; margin: 10px 0;">
+        <h3 style="color: #00fff5; margin-bottom: 8px;">쿨타임</h3>
+        <div id="cooldownHUD">
+            <div style="margin: 6px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span>대쉬</span><span id="dashCoolText" style="color:#00fff5">준비</span>
+                </div>
+                <div style="background:#0f3460; border-radius:4px; height:8px; margin-top:3px;">
+                    <div id="dashCoolBar" style="height:8px; border-radius:4px; background:#00fff5; width:100%;"></div>
+                </div>
+            </div>
+            <div style="margin: 6px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span id="skillNameLabel">스킬</span><span id="skillCoolText" style="color:#ff4444">준비</span>
+                </div>
+                <div style="background:#0f3460; border-radius:4px; height:8px; margin-top:3px;">
+                    <div id="skillCoolBar" style="height:8px; border-radius:4px; background:#ff4444; width:100%;"></div>
+                </div>
+            </div>
+        </div>
+        <p id="spectateHint" style="display:none; color:#aaa; font-size:12px; margin-top:8px;">클릭으로 관전 전환</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // ========== Firebase 설정 ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyBl2xG5QDEISFwOi-sNqn5eW70BpNuRZdU",
+            authDomain: "llnngg.firebaseapp.com",
+            databaseURL: "https://llnngg-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "llnngg",
+            storageBucket: "llnngg.firebasestorage.app",
+            messagingSenderId: "849568964604",
+            appId: "1:849568964604:web:d727d027262539887c9c79"
+        };
+
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const roomsRef = database.ref('rooms');
+
+        // 현재 방 ID (방 선택/생성 후 설정됨)
+        let currentRoomId = null;
+
+        // 방 기반 동적 refs (joinRoom 후 초기화)
+        let playersRef, gameStateRef, bulletsRef, particlesRef, swingsRef, stabsRef, smokesRef, hitEffectsRef, smithHammersRef, samuraiSlashesRef, parryHitsRef;
+
+        function initRoomRefs(roomId) {
+            const base = database.ref('rooms/' + roomId);
+            playersRef    = base.child('players');
+            gameStateRef  = base.child('gameState');
+            bulletsRef    = base.child('bullets');
+            particlesRef  = base.child('particles');
+            swingsRef     = base.child('swings');
+            stabsRef      = base.child('stabs');
+            smokesRef     = base.child('smokes');
+            hitEffectsRef = base.child('hitEffects');
+            smithHammersRef = base.child('smithHammers');
+            samuraiSlashesRef = base.child('samuraiSlashes');
+            parryHitsRef = base.child('parryHits');
+        }
+
+        // ========== 직업 데이터 ==========
+        const CLASSES = {
+            infantry: {
+                id: 'infantry',
+                name: '보병',
+                icon: '🛡️',
+                description: '총으로 적을 제압하는 원거리 사격수',
+                stats: { moveSpeed: 5, attack: 20, attackSpeed: 1.125, health: 100 },
+                color: '#4ECDC4',
+                bulletSpeed: 22.5,
+                skill: { name: '연사', cooldown: 10, bullets: 10, bulletSpeed: 22.5, bulletInterval: 100 }
+            },
+            warrior: {
+                id: 'warrior',
+                name: '워리어',
+                icon: '⚔️',
+                description: '강인한 근접 전사',
+                stats: { moveSpeed: 4.5, attack: 20, attackSpeed: 1.5, health: 130 },
+                color: '#e74c3c',
+                skill: { name: '전투 태세', cooldown: 15 }
+            },
+            assassin: {
+                id: 'assassin',
+                name: '어쌔신',
+                icon: '🗡️',
+                description: '은신으로 적을 기습하는 암살자',
+                stats: { moveSpeed: 5.5, attack: 30, attackSpeed: 2.5, health: 80 },
+                color: '#9b59b6',
+                skill: { name: '은신', cooldown: 8 }
+            },
+            blacksmith: {
+                id: 'blacksmith',
+                name: '대장장이',
+                icon: '🔨',
+                description: '강화를 거듭할수록 더욱 강해지는 전장의 대장장이',
+                stats: { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 },
+                color: '#e67e22',
+                skill: { name: '강화', cooldown: 4 }
+            },
+            samurai: {
+                id: 'samurai',
+                name: '사무라이',
+                icon: '⛩️',
+                description: '날카로운 베기와 패링으로 적을 제압하는 검객',
+                stats: { moveSpeed: 4.5, attack: 20, attackSpeed: 1, health: 100 },
+                color: '#c0392b',
+                skill: { name: '패링', cooldown: 8 }
+            }
+        };
+
+        // 워리어 전용 상태
+        let warriorSkillActive = false;       // 스킬 활성화 여부
+        let warriorSkillEnd = 0;              // 스킬 종료 시간
+        let warriorSpinReady = false;         // 회전 공격 준비 여부
+        let warriorSwingActive = false;       // 검 휘두르기 애니메이션 중
+        let warriorSwingAngle = 0;            // 현재 휘두르기 각도
+        let warriorSwingDir = 0;              // 휘두르기 기준 각도
+        let warriorSwingFrames = 0;           // 남은 애니메이션 프레임
+        const WARRIOR_SWING_TOTAL = 10;       // 휘두르기 총 프레임
+        const WARRIOR_SWING_RANGE = 102;      // 검 도달 범위 (px) — 기존 85의 120%
+        const WARRIOR_SPIN_RANGE = 170;       // 회전 공격 범위 (px) — 기존 85의 200%
+        const WARRIOR_SWING_ARC = Math.PI * 1.0; // 180도 호
+        const WARRIOR_SPIN_ARC = Math.PI * 2;    // 360도 호
+        const swingHitIds = new Set();        // 이번 휘두르기에서 이미 맞은 대상
+        let _currentSwingArc = Math.PI * 1.0; // 현재 휘두르기 각도 범위
+        let _currentSwingRange = WARRIOR_SWING_RANGE; // 현재 휘두르기 범위
+
+        // 어쌔신 전용 상태
+        let assassinStealthActive = false;    // 은신 여부
+        let assassinStealthEnd = 0;           // 은신 종료 시간
+        const ASSASSIN_STAB_RANGE = 65;       // 찌르기 사거리
+        const ASSASSIN_STAB_TOTAL = 8;        // 찌르기 애니메이션 프레임
+        let assassinStabActive = false;       // 찌르기 애니메이션 중
+        let assassinStabFrames = 0;           // 남은 프레임
+        let assassinStabDir = 0;              // 찌르기 방향
+        let assassinStabHit = false;          // 이번 찌르기에서 이미 히트
+        const assassinSmokeParticles = [];    // 연기 파티클 (로컬)
+
+        // 대장장이 전용 상태
+        let smithForging = false;             // 강화 경직 중 여부
+        let smithForgeEnd = 0;                // 경직 종료 시간
+        let smithEnhanceLevel = 0;            // 강화 횟수 (게임 내 리셋)
+        let smithHammerActive = false;        // 망치 공격 애니메이션 중
+        let smithHammerFrames = 0;            // 망치 공격 남은 프레임
+        let smithHammerDir = 0;              // 망치 방향
+        let smithHammerHit = false;           // 이번 공격에서 히트
+        const SMITH_HAMMER_TOTAL = 12;        // 망치 공격 총 프레임
+        const SMITH_HAMMER_HIT_FRAME = 4;     // 이 프레임 이후부터 히트 판정
+        const SMITH_HAMMER_RANGE = 55;        // 망치 도달 범위 (사각형 폭 절반)
+        const SMITH_HAMMER_HEIGHT = 60;       // 사각형 높이
+        const smithHammerHitIds = new Set();  // 이번 공격에서 맞은 대상
+        const playerHammers = {};             // 다른 플레이어 망치 공격 상태
+
+        // 사무라이 전용 상태
+        const SAMURAI_SLASH_TOTAL = 10;       // 찌르기 애니메이션 총 프레임
+        const SAMURAI_MAX_CHARGE = 2500;      // 최대 차징 시간 (ms)
+        // 차징 단계별 스탯 (0~6단계)
+        const SAMURAI_CHARGE_LEVELS = [
+            { minTime: 0,    maxTime: 417,  dmg: 5,  length: 80,  width: 30, dashFrames: 5,  dashSpeed: 10 },
+            { minTime: 417,  maxTime: 833,  dmg: 10, length: 105, width: 36, dashFrames: 6,  dashSpeed: 11 },
+            { minTime: 833,  maxTime: 1250, dmg: 15, length: 130, width: 40, dashFrames: 7,  dashSpeed: 12 },
+            { minTime: 1250, maxTime: 1667, dmg: 20, length: 155, width: 44, dashFrames: 8,  dashSpeed: 13 },
+            { minTime: 1667, maxTime: 2083, dmg: 25, length: 175, width: 48, dashFrames: 9,  dashSpeed: 14 },
+            { minTime: 2083, maxTime: 2500, dmg: 30, length: 195, width: 52, dashFrames: 10, dashSpeed: 15 },
+            { minTime: 2500, maxTime: 9999, dmg: 35, length: 220, width: 58, dashFrames: 12, dashSpeed: 17 },
+        ];
+        // 차징 상태
+        let samuraiCharging = false;          // 마우스 누르고 있음
+        let samuraiChargeStart = 0;           // 차징 시작 시각
+        let samuraiChargeDir = 0;             // 차징 방향 (누를 때 마우스 방향)
+        let samuraiChargeTimerId = null;      // 자동발사 setTimeout ID (중복 방지)
+        let samuraiCurrentLevel = null;       // 발사 시 확정된 레벨 객체
+        let samuraiSlashActive = false;       // 찌르기 중
+        let samuraiSlashFrames = 0;           // 남은 프레임
+        let samuraiSlashDir = 0;              // 찌르기 방향
+        let samuraiSlashProgress = 0;         // 찌르기 진행도 (0~1)
+        let samuraiSlashDashFrames = 0;       // 돌진 남은 프레임
+        let samuraiSlashDashVx = 0;
+        let samuraiSlashDashVy = 0;
+        const samuraiSlashHitIds = new Set(); // 이번 찌르기에 맞은 대상
+
+        let samuraiParryActive = false;       // 패링 경직 중
+        let samuraiParryEnd = 0;              // 패링 종료 시간
+        let samuraiParryHit = false;          // 패링 중 공격 받았는지
+        let samuraiParryDir = 0;              // 패링 시 바라보던 방향 (반격 돌진용)
+        let samuraiCounterActive = false;     // 반격 돌진 중
+        let samuraiCounterFrames = 0;         // 반격 돌진 남은 프레임
+        let samuraiCounterVx = 0;
+        let samuraiCounterVy = 0;
+        const SAMURAI_COUNTER_FRAMES = 14;    // 반격 돌진 지속 프레임
+        const SAMURAI_COUNTER_SPEED = 20;     // 반격 돌진 속도
+        const SAMURAI_COUNTER_DMG = 50;       // 반격 피해
+        const samuraiCounterHitIds = new Set();
+
+        const playerSamuraiSlashes = {};      // 다른 플레이어 베기 상태
+        const playerParries = {};             // 다른 플레이어 패링 상태
+
+        // ========== 게임 상태 ==========
+        const GAME_STATUS = {
+            LOBBY: 'LOBBY',
+            PLAYING: 'PLAYING'
+        };
+
+        const GAME_MODE = {
+            NORMAL: 'NORMAL',      // 일반 모드 (2인 이상, 최후 1인 승리)
+            PRACTICE: 'PRACTICE'   // 연습 모드 (1인 가능, 허수아비, 즉시 부활)
+        };
+
+        let myPlayerId = null;
+        let myNickname = null;
+        let myClass = null;
+        let isHost = false;
+        let isReady = false;
+        let gameStatus = GAME_STATUS.LOBBY;
+        let gameMode = GAME_MODE.NORMAL;  // 현재 게임 모드
+
+        const players = {};
+        const keys = {};
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const PLAYER_SIZE = 30;
+
+        // 허수아비 (연습 모드 전용)
+        const DUMMY_ID = 'training_dummy';
+        function createDummyData() {
+            return {
+                id: DUMMY_ID,
+                nickname: '훈련용 허수아비',
+                x: 1000 - PLAYER_SIZE / 2,
+                y: 1000 - PLAYER_SIZE / 2,
+                health: 999999,
+                maxHealth: 999999,
+                color: '#888888',
+                isSpectator: false,
+                isDummy: true
+            };
+        }
+
+        // 카메라 오프셋
+        let cameraX = 0;
+        let cameraY = 0;
+
+        // 관전 시스템
+        let isSpectating = false;
+        let spectateTargetId = null;
+        let isAlive = true;
+
+        // R키 강제 종료 시스템
+        let rKeyPressStart = 0;
+        let rKeyHolding = false;
+        let forceStopProgress = 0; // 0~100%
+
+        // 전투 시스템
+        const bullets = []; // 모든 총알
+        let lastAttackTime = 0;
+        let skillCooldownEnd = 0;
+        let isUsingSkill = false;
+        let skillBulletCount = 0;
+        let skillDirection = { x: 0, y: 0 };
+        let lastSkillBullet = 0;
+
+        // 대쉬 시스템 (돌진 메커니즘)
+        let dashCooldownEnd = 0;
+        const DASH_COOLDOWN = 3;
+        let isDashing = false;
+        let dashVx = 0;
+        let dashVy = 0;
+        let dashRemainFrames = 0;
+        const DASH_TOTAL_FRAMES = 12;   // 돌진 지속 프레임
+        // DASH_SPEED는 이동속도 비례로 performDash에서 계산 (기준: moveSpeed 5 → speed 28)
+
+        // 파티클 (대쉬 먼지/잔상)
+        const particles = [];
+        const particleIds = new Set(); // 중복 수신 방지용
+
+        // 히트 이펙트
+        const hitEffects = [];
+
+        // 총알 ID 중복 방지용
+        const bulletIds = new Set();
+
+        // 모든 플레이어 스윙 상태 (playerId → swingState)
+        const playerSwings = {};
+        // 모든 플레이어 찌르기 상태 (playerId → stabState)
+        const playerStabs = {};
+
+        // 맵 크기
+        const MAP_W = 2000;
+        const MAP_H = 2000;
+
+        // 마우스 위치
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // ========== 화면 전환 ==========
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // ========== 닉네임 입력 ==========
+        document.getElementById('nicknameNextBtn').addEventListener('click', () => {
+            const nickname = document.getElementById('nicknameInput').value.trim();
+            if (!nickname) {
+                document.getElementById('nicknameError').textContent = '닉네임을 입력해주세요!';
+                return;
+            }
+            myNickname = nickname;
+            document.getElementById('myNickname').textContent = myNickname;
+            showScreen('classScreen');
+            renderClassSelection();
+        });
+
+        document.getElementById('nicknameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('nicknameNextBtn').click();
+            }
+        });
+
+        // ========== 직업 선택 슬라이더 ==========
+        let currentClassIndex = 0;
+        let classIds = [];
+
+        function renderClassSelection() {
+            const slider = document.getElementById('classSlider');
+            const dotsContainer = document.getElementById('swiperDots');
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            classIds = Object.keys(CLASSES);
+
+            classIds.forEach((classId, index) => {
+                const classData = CLASSES[classId];
+                
+                // 슬라이드 생성
+                const slide = document.createElement('div');
+                slide.className = 'class-slide';
+                slide.innerHTML = `
+                    <div class="class-card">
+                        <div class="class-icon">${classData.icon}</div>
+                        <h3>${classData.name}</h3>
+                        <p class="description">${classData.description}</p>
+                        <div class="stats">
+                            <div>⚡ 이동속도: ${classData.stats.moveSpeed}</div>
+                            <div>⚔️ 공격력: ${classData.id === 'samurai' ? '5~35 (차징)' : classData.stats.attack}</div>
+                            <div>⏱️ 공격속도: ${classData.stats.attackSpeed}/초</div>
+                            <div>❤️ 체력: ${classData.stats.health}</div>
+                        </div>
+                    </div>
+                `;
+                slider.appendChild(slide);
+
+                // 도트 생성
+                const dot = document.createElement('div');
+                dot.className = 'swiper-dot' + (index === 0 ? ' active' : '');
+                dot.addEventListener('click', () => goToSlide(index));
+                dotsContainer.appendChild(dot);
+            });
+
+            // 첫 직업 자동 선택
+            selectClassByIndex(0);
+
+            // 네비게이션 이벤트
+            document.getElementById('swiperPrev').addEventListener('click', prevSlide);
+            document.getElementById('swiperNext').addEventListener('click', nextSlide);
+
+            // 터치 스와이프 지원
+            let touchStartX = 0;
+            let touchEndX = 0;
+            slider.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
+            slider.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                if (touchStartX - touchEndX > 50) nextSlide();
+                if (touchEndX - touchStartX > 50) prevSlide();
+            });
+
+            // 키보드 화살표 지원
+            document.addEventListener('keydown', function classKeyHandler(e) {
+                if (document.getElementById('classScreen').classList.contains('active')) {
+                    if (e.key === 'ArrowLeft') prevSlide();
+                    if (e.key === 'ArrowRight') nextSlide();
+                }
+            });
+        }
+
+        function goToSlide(index) {
+            currentClassIndex = index;
+            const slider = document.getElementById('classSlider');
+            slider.style.transform = `translateX(-${index * 100}%)`;
+            
+            // 도트 업데이트
+            document.querySelectorAll('.swiper-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+
+            selectClassByIndex(index);
+        }
+
+        function prevSlide() {
+            if (currentClassIndex > 0) goToSlide(currentClassIndex - 1);
+        }
+
+        function nextSlide() {
+            if (currentClassIndex < classIds.length - 1) goToSlide(currentClassIndex + 1);
+        }
+
+        function selectClassByIndex(index) {
+            myClass = classIds[index];
+            document.getElementById('classSelectBtn').disabled = false;
+        }
+
+        document.getElementById('classSelectBtn').addEventListener('click', function() {
+            if (!myClass) {
+                document.getElementById('classError').textContent = '직업을 선택해주세요!';
+                return;
+            }
+            showScreen('roomScreen');
+            startRoomListListener();
+        });
+
+        // ========== 방 목록 실시간 리스너 ==========
+        let roomListListener = null;
+        function startRoomListListener() {
+            if (roomListListener) roomsRef.off('value', roomListListener);
+            roomListListener = roomsRef.on('value', (snapshot) => {
+                const allRooms = snapshot.val() || {};
+                const listDiv = document.getElementById('roomList');
+                listDiv.innerHTML = '';
+
+                const lobbyRooms = Object.entries(allRooms).filter(([, r]) =>
+                    r.gameState && r.gameState.status === GAME_STATUS.LOBBY
+                );
+
+                if (lobbyRooms.length === 0) {
+                    listDiv.innerHTML = '<div class="room-empty">대기 중인 방이 없습니다</div>';
+                    return;
+                }
+
+                lobbyRooms.forEach(([roomId, room]) => {
+                    const playerCount = room.players ? Object.keys(room.players).length : 0;
+                    const hostName = room.gameState && room.gameState.hostName ? room.gameState.hostName : '알 수 없음';
+                    const item = document.createElement('div');
+                    item.className = 'room-item';
+                    item.innerHTML = `
+                        <div class="room-info">
+                            <div class="room-host">👑 ${hostName}의 방</div>
+                            <div class="room-count">${playerCount}명 대기 중</div>
+                        </div>
+                        <div style="color: #00fff5; font-size: 20px;">›</div>
+                    `;
+                    item.addEventListener('click', () => {
+                        stopRoomListListener();
+                        joinRoom(roomId);
+                    });
+                    listDiv.appendChild(item);
+                });
+            });
+        }
+
+        function stopRoomListListener() {
+            if (roomListListener) {
+                roomsRef.off('value', roomListListener);
+                roomListListener = null;
+            }
+        }
+
+        // ========== 방 만들기 버튼 ==========
+        document.getElementById('createRoomBtn').addEventListener('click', () => {
+            stopRoomListListener();
+            const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            joinRoom(roomId, true);
+        });
+
+        // ========== 방 입장 (생성 or 기존) ==========
+        function joinRoom(roomId, isCreating = false) {
+            currentRoomId = roomId;
+            initRoomRefs(roomId);
+            joinLobby(isCreating);
+        }
+
+        // ========== 대기실 입장 ==========
+        function joinLobby(isCreating = false) {
+            myPlayerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // 게임 상태 확인
+            gameStateRef.once('value', (snapshot) => {
+                const gameState = snapshot.val();
+                
+                // 게임이 진행 중이면 관전 모드로 입장
+                if (gameState && gameState.status === GAME_STATUS.PLAYING) {
+                    isSpectating = true;
+                    isAlive = false;
+
+                    // Firebase에 관전자로 등록 (위치 없이)
+                    const classData = CLASSES[myClass];
+                    const spectatorData = {
+                        id: myPlayerId,
+                        nickname: myNickname,
+                        class: myClass,
+                        className: classData.name,
+                        stats: classData.stats,
+                        color: classData.color,
+                        ready: false,
+                        x: -9999,
+                        y: -9999,
+                        health: 0,
+                        maxHealth: classData.stats.health,
+                        isSpectator: true,
+                        timestamp: Date.now()
+                    };
+                    playersRef.child(myPlayerId).set(spectatorData);
+                    playersRef.child(myPlayerId).onDisconnect().remove();
+
+                    // 게임 종료 감지 → 로비로
+                    gameStateRef.on('value', (snap) => {
+                        const state = snap.val();
+                        if (!state || state.status === GAME_STATUS.LOBBY) {
+                            location.reload();
+                        }
+                    });
+
+                    // 게임 화면으로 전환 후 관전 시작
+                    gameStatus = GAME_STATUS.PLAYING;
+                    showScreen('gameContainer');
+                    document.getElementById('info').style.display = 'block';
+                    document.getElementById('playerList').style.display = 'block';
+                    document.getElementById('controls').style.display = 'block';
+                    document.getElementById('myClass').textContent = CLASSES[myClass].name;
+
+                    // 플레이어 감지 후 관전 대상 선택
+                    playersRef.on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        for (let id in players) {
+                            if (!data || !data[id]) delete players[id];
+                        }
+                        if (data) {
+                            for (let id in data) players[id] = data[id];
+                        }
+                        updatePlayerList();
+                        // 관전 대상이 없거나 사라졌으면 새로 선택
+                        if (!spectateTargetId || !players[spectateTargetId] || players[spectateTargetId].isSpectator) {
+                            pickRandomSpectateTarget();
+                        }
+                    });
+
+                    document.addEventListener('keydown', handleKeyDown);
+                    document.addEventListener('keyup', handleKeyUp);
+                    canvas.addEventListener('mousemove', handleMouseMove);
+                    canvas.addEventListener('mousedown', handleMouseDown);
+                    canvas.addEventListener('mouseup', handleMouseUp);
+                    canvas.addEventListener('contextmenu', handleRightClick);
+                    setupEffectListeners(); // 관전자도 이펙트 수신
+                    gameLoop();
+                    return;
+                }
+                
+                // 대기실로 입장
+                const classData = CLASSES[myClass];
+                const playerData = {
+                    id: myPlayerId,
+                    nickname: myNickname,
+                    class: myClass,
+                    className: classData.name,
+                    stats: classData.stats,
+                    color: classData.color,
+                    ready: false,
+                    x: 0,
+                    y: 0,
+                    health: classData.stats.health,
+                    maxHealth: classData.stats.health,
+                    timestamp: Date.now()
+                };
+                
+                playersRef.child(myPlayerId).set(playerData);
+                playersRef.child(myPlayerId).onDisconnect().remove();
+                
+                // 방 만들기로 진입했거나 첫 번째 플레이어면 방장
+                if (isCreating) {
+                    isHost = true;
+                    gameStateRef.set({
+                        status: GAME_STATUS.LOBBY,
+                        hostId: myPlayerId,
+                        hostName: myNickname
+                    });
+                    gameStateRef.onDisconnect().remove();
+                    document.getElementById('hostIndicator').style.display = 'block';
+                    document.getElementById('startBtn').style.display = 'inline-block';
+                    document.getElementById('practiceBtn').style.display = 'inline-block';
+                }
+                
+                showScreen('lobbyScreen');
+                // 대기실 타이틀에 방장 이름 표시
+                gameStateRef.once('value', (s) => {
+                    const st = s.val();
+                    const hostName = st && st.hostName ? st.hostName : myNickname;
+                    document.getElementById('lobbyTitle').textContent = `🏠 ${hostName}의 방`;
+                });
+                setupLobbyListeners();
+            });
+        }
+
+        // ========== 대기실 리스너 ==========
+        function setupLobbyListeners() {
+            // 플레이어 목록 감지
+            playersRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                const listDiv = document.getElementById('lobbyPlayerList');
+                listDiv.innerHTML = '';
+                
+                let readyCount = 0;
+                let totalCount = 0;
+                
+                for (let id in data) {
+                    const player = data[id];
+                    totalCount++;
+                    if (player.ready) readyCount++;
+                    
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'lobby-player';
+                    if (player.ready) playerDiv.classList.add('ready');
+                    
+                    playerDiv.innerHTML = `
+                        <div class="lobby-player-info">
+                            <div class="player-color" style="background: ${player.color}"></div>
+                            <strong>${player.nickname}</strong>
+                            ${id === myPlayerId ? '(나)' : ''}
+                            <span class="lobby-player-class">${player.className}</span>
+                        </div>
+                        <span class="lobby-player-status ${player.ready ? 'ready' : 'waiting'}">
+                            ${player.ready ? '✓ 준비완료' : '대기중'}
+                        </span>
+                    `;
+                    listDiv.appendChild(playerDiv);
+                }
+                
+                document.getElementById('lobbyPlayerCount').textContent = totalCount;
+                
+                if (isHost && totalCount > 0 && readyCount === totalCount) {
+                    document.getElementById('startBtn').disabled = false;
+                } else if (isHost) {
+                    document.getElementById('startBtn').disabled = true;
+                }
+            });
+
+            // ★ 파티원용: gameState 변경 감지 → PLAYING이 되면 게임 화면으로 전환
+            gameStateRef.on('value', (snapshot) => {
+                const state = snapshot.val();
+                if (!state) return;
+                if (state.status === GAME_STATUS.PLAYING && gameStatus !== GAME_STATUS.PLAYING) {
+                    // 스폰 좌표가 Firebase에 반영될 때까지 잠깐 대기 후 시작
+                    playersRef.child(myPlayerId).once('value', (snap) => {
+                        const me = snap.val();
+                        if (me && me.x !== undefined && me.x !== 0) {
+                            startGame();
+                        } else {
+                            // 좌표가 아직 안 왔으면 재시도
+                            setTimeout(() => {
+                                playersRef.child(myPlayerId).once('value', (snap2) => {
+                                    startGame();
+                                });
+                            }, 300);
+                        }
+                    });
+                }
+            });
+        }
+
+        // ========== 준비 완료 버튼 ==========
+        document.getElementById('readyBtn').addEventListener('click', () => {
+            isReady = !isReady;
+            playersRef.child(myPlayerId).update({ ready: isReady });
+            document.getElementById('readyBtn').textContent = isReady ? '준비 취소' : '준비 완료';
+            document.getElementById('readyBtn').style.background = isReady ? '#ff9800' : '#00fff5';
+        });
+
+        // ========== 게임 시작 버튼 (일반 모드: 2인 이상) ==========
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (!isHost) return;
+            playersRef.once('value', (snapshot) => {
+                const allPlayers = snapshot.val();
+                const playerCount = Object.keys(allPlayers || {}).length;
+                if (playerCount < 2) {
+                    document.getElementById('lobbyError').textContent = '일반 게임은 2인 이상 필요합니다. 1인은 연습 모드를 이용하세요.';
+                    return;
+                }
+                document.getElementById('lobbyError').textContent = '';
+                gameMode = GAME_MODE.NORMAL;
+                startGameSession(allPlayers);
+            });
+        });
+
+        // ========== 연습 모드 버튼 ==========
+        document.getElementById('practiceBtn').addEventListener('click', () => {
+            if (!isHost) return;
+            playersRef.once('value', (snapshot) => {
+                const allPlayers = snapshot.val();
+                gameMode = GAME_MODE.PRACTICE;
+                startGameSession(allPlayers);
+            });
+        });
+
+        // ========== 게임 세션 시작 공통 로직 ==========
+        function startGameSession(allPlayers) {
+            const updates = {};
+            for (let id in allPlayers) {
+                const spawnX = 100 + Math.random() * 1800;
+                const spawnY = 100 + Math.random() * 1800;
+                updates[id + '/x'] = spawnX;
+                updates[id + '/y'] = spawnY;
+                updates[id + '/ready'] = false;
+            }
+
+            // 연습 모드면 허수아비 추가
+            if (gameMode === GAME_MODE.PRACTICE) {
+                updates[DUMMY_ID] = createDummyData();
+            }
+
+            playersRef.update(updates, () => {
+                gameStateRef.update({
+                    status: GAME_STATUS.PLAYING,
+                    mode: gameMode,
+                    startTime: Date.now()
+                });
+                startGame();
+            });
+        }
+
+        // ========== 게임 시작 ==========
+        function startGame() {
+            if (gameStatus === GAME_STATUS.PLAYING) return;
+            gameStatus = GAME_STATUS.PLAYING;
+
+            // 대기실 리스너 해제
+            playersRef.off();
+            gameStateRef.off();
+
+            // ★ 내 이전 세션 잔여 데이터 정리 (비동기, 블로킹 없음)
+            Promise.all([
+                bulletsRef.orderByChild('ownerId').equalTo(myPlayerId).once('value').then(s => s.forEach(c => c.ref.remove())),
+                particlesRef.orderByChild('ownerId').equalTo(myPlayerId).once('value').then(s => s.forEach(c => c.ref.remove())),
+                swingsRef.child(myPlayerId).remove()
+            ]).catch(() => {}); // 에러 무시
+
+            showScreen('gameContainer');
+            document.getElementById('info').style.display = 'block';
+            document.getElementById('playerList').style.display = 'block';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('myClass').textContent = CLASSES[myClass].name;
+            isAlive = true;
+
+            // ★ 종료/새로고침 시 캐릭터(+연습 모드는 방 전체) 제거
+            if (gameMode === GAME_MODE.PRACTICE && currentRoomId) {
+                // 연습 모드: 접속 끊기면 방 전체 삭제
+                database.ref('rooms/' + currentRoomId).onDisconnect().remove();
+                window.addEventListener('beforeunload', () => {
+                    database.ref('rooms/' + currentRoomId).remove();
+                });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        database.ref('rooms/' + currentRoomId).remove();
+                    }
+                });
+            } else {
+                playersRef.child(myPlayerId).onDisconnect().remove();
+                window.addEventListener('beforeunload', () => {
+                    playersRef.child(myPlayerId).remove();
+                });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        playersRef.child(myPlayerId).remove();
+                    }
+                });
+            }
+
+            // 키보드 이벤트
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+
+            // 마우스 이벤트
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('contextmenu', handleRightClick);
+
+            // 플레이어 실시간 동기화
+            playersRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                for (let id in players) {
+                    if (!data || !data[id]) delete players[id];
+                }
+                if (data) {
+                    for (let id in data) players[id] = data[id];
+                }
+                if ((isSpectating || !isAlive) && (!spectateTargetId || !players[spectateTargetId] || players[spectateTargetId].isSpectator)) {
+                    pickRandomSpectateTarget();
+                }
+                updatePlayerList();
+            });
+
+            // 내 HP 변경 감지 → 사망 처리 / 연습 모드 부활
+            playersRef.child(myPlayerId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                if (data.health <= 0 && isAlive) {
+                    isAlive = false;
+                    cancelSamuraiCharge(); // 사무라이 차징 취소
+
+                    if (gameMode === GAME_MODE.PRACTICE) {
+                        // 연습 모드: 1초 후 부활
+                        setTimeout(() => {
+                            const respawnX = 100 + Math.random() * 1800;
+                            const respawnY = 100 + Math.random() * 1800;
+                            const maxHp = myClass === 'blacksmith' ? CLASSES.blacksmith.stats.health : CLASSES[myClass].stats.health;
+                            playersRef.child(myPlayerId).update({
+                                x: respawnX,
+                                y: respawnY,
+                                health: maxHp,
+                                isSpectator: false
+                            });
+                            isAlive = true;
+                            isSpectating = false;
+                            document.getElementById('spectateHint').style.display = 'none';
+                        }, 1000);
+                    } else {
+                        // 일반 모드: 관전
+                        isSpectating = true;
+                        pickRandomSpectateTarget();
+                        document.getElementById('spectateHint').style.display = 'block';
+                    }
+                }
+            });
+
+            // 다른 플레이어 총알/파티클/이펙트 수신 (공통)
+            setupEffectListeners();
+
+            // 게임 강제종료 감지 + 게임 모드 동기화
+            gameStateRef.on('value', (snapshot) => {
+                const state = snapshot.val();
+                if (!state || state.status === GAME_STATUS.LOBBY) {
+                    location.reload();
+                    return;
+                }
+                // 게임 모드 동기화
+                if (state.mode) gameMode = state.mode;
+            });
+
+            // 플레이어 수 감지 → 승리 조건 체크 (일반 모드만)
+            playersRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (gameMode !== GAME_MODE.NORMAL) return;
+                if (!data) return;
+
+                const alivePlayers = Object.keys(data).filter(id =>
+                    id !== DUMMY_ID && !data[id].isSpectator && data[id].health > 0
+                );
+
+                // 2인 이상으로 시작 → 최후 1인 남으면 승리
+                if (alivePlayers.length === 1 && Object.keys(data).filter(i => i !== DUMMY_ID).length >= 2) {
+                    const winnerId = alivePlayers[0];
+                    const winner = data[winnerId];
+                    showVictoryScreen(winner.nickname);
+                }
+            });
+
+            // 게임 루프 시작
+            gameLoop();
+        }
+
+        // ========== 이펙트 Firebase 리스너 (플레이어/관전자 공통) ==========
+        function setupEffectListeners() {
+            // ── 총알 수신 (위치 경과시간 보정) ──
+            bulletsRef.on('child_added', (snapshot) => {
+                const b = snapshot.val();
+                if (!b || b.ownerId === myPlayerId) return;
+                if (bulletIds.has(b.id)) return;
+                const elapsed = (Date.now() - b.createdAt) / 1000;
+                if (elapsed * 1000 > b.maxLifetime + 500) return;
+                const frames = elapsed * 60;
+                b.x += b.vx * frames;
+                b.y += b.vy * frames;
+                bulletIds.add(b.id);
+                bullets.push(b);
+                console.log(`[총알 수신] from ${b.ownerId}, elapsed: ${elapsed.toFixed(2)}s`);
+            });
+            bulletsRef.on('child_removed', (snapshot) => {
+                const b = snapshot.val();
+                if (!b) return;
+                bulletIds.delete(b.id);
+                const idx = bullets.findIndex(x => x.id === b.id);
+                if (idx !== -1) bullets.splice(idx, 1);
+            });
+
+            // ── 파티클 수신 (경과시간 보정) ──
+            particlesRef.on('child_added', (snapshot) => {
+                const p = snapshot.val();
+                if (!p || p.ownerId === myPlayerId) return;
+                if (particleIds.has(p.id)) return;
+                const elapsed = (Date.now() - p.createdAt) / 1000;
+                const framesElapsed = Math.min(30, elapsed * 60);
+                p.life = Math.max(0, 1.0 - p.decay * framesElapsed);
+                if (p.life <= 0) return;
+                p.x += p.vx * framesElapsed;
+                p.y += p.vy * framesElapsed;
+                particleIds.add(p.id);
+                particles.push(p);
+            });
+            particlesRef.on('child_removed', (snapshot) => {
+                const p = snapshot.val();
+                if (!p) return;
+                particleIds.delete(p.id);
+                const idx = particles.findIndex(x => x.id === p.id);
+                if (idx !== -1) particles.splice(idx, 1);
+            });
+
+            // ── 히트 이펙트 수신 ──
+            hitEffectsRef.on('child_added', (snapshot) => {
+                const ef = snapshot.val();
+                if (!ef) return;
+                if (ef.ownerId === myPlayerId) return; // 발사자는 이미 로컬 생성
+                if (Date.now() - ef.createdAt > 2000) return;
+                _addHitEffect(ef);
+                // 피격 플래시 (내가 맞은 위치 근처면)
+                if (players[myPlayerId]) {
+                    const me = players[myPlayerId];
+                    const dx = ef.x - (me.x + PLAYER_SIZE / 2);
+                    const dy = ef.y - (me.y + PLAYER_SIZE / 2);
+                    if (Math.sqrt(dx*dx + dy*dy) < PLAYER_SIZE) {
+                        flashScreen(ef.isFatal ? '#ff000055' : '#ff880033', ef.isFatal ? 300 : 150);
+                    }
+                }
+            });
+
+            // ── 워리어 스윙 수신 ──
+            swingsRef.on('child_added', (snapshot) => {
+                const s = snapshot.val();
+                if (!s || s.ownerId === myPlayerId) return;
+                if (Date.now() - s.createdAt > 2000) return;
+                playerSwings[s.ownerId] = {
+                    ...s,
+                    frames: s.totalFrames,
+                    angle: s.dir - s.arc / 2
+                };
+            });
+            swingsRef.on('child_removed', (snapshot) => {
+                const s = snapshot.val();
+                if (s) delete playerSwings[s.ownerId];
+            });
+
+            // ── 어쌔신 찌르기 수신 ──
+            stabsRef.on('child_added', (snapshot) => {
+                const s = snapshot.val();
+                if (!s || s.ownerId === myPlayerId) return;
+                if (Date.now() - s.createdAt > 2000) return;
+                playerStabs[s.ownerId] = { ...s, frames: s.totalFrames };
+            });
+            stabsRef.on('child_removed', (snapshot) => {
+                const s = snapshot.val();
+                if (s) delete playerStabs[s.ownerId];
+            });
+
+            // ── 어쌔신 연기 수신 ──
+            smokesRef.on('child_added', (snapshot) => {
+                const s = snapshot.val();
+                if (!s || s.ownerId === myPlayerId) return;
+                // forge_ 접두사는 강화 신호 — particlesRef로 이미 파티클 공유되므로 여기선 무시
+                if (snapshot.key && snapshot.key.startsWith('forge_')) return;
+                if (Date.now() - s.createdAt > 3000) return;
+                spawnSmokeEffect(s.x, s.y);
+            });
+
+            // ── 대장장이 망치 공격 수신 ──
+            smithHammersRef.on('child_added', (snapshot) => {
+                const h = snapshot.val();
+                if (!h || h.ownerId === myPlayerId) return;
+                if (Date.now() - h.createdAt > 2000) return;
+                playerHammers[h.ownerId] = { ...h, frames: h.totalFrames };
+            });
+            smithHammersRef.on('child_removed', (snapshot) => {
+                const h = snapshot.val();
+                if (h) delete playerHammers[h.ownerId];
+            });
+
+            // ── 사무라이 패링 히트 신호 수신 (피격자 본인만 처리) ──
+            parryHitsRef.on('child_added', (snapshot) => {
+                const d = snapshot.val();
+                if (!d || d.targetId !== myPlayerId) return;
+                if (Date.now() - d.createdAt > 1500) return;
+                _checkAndTriggerParry();
+            });
+            samuraiSlashesRef.on('child_added', (snapshot) => {
+                const s = snapshot.val();
+                if (!s || s.ownerId === myPlayerId) return;
+                if (Date.now() - s.createdAt > 2000) return;
+                const key = snapshot.key;
+                playerSamuraiSlashes[key] = {
+                    ...s,
+                    frames: s.totalFrames || SAMURAI_SLASH_TOTAL,
+                    progress: 0,
+                    type: s.type || 'slash'
+                };
+                console.log(`[사무라이 슬래시 수신] from ${s.ownerId}, key: ${key}`);
+            });
+            samuraiSlashesRef.on('child_removed', (snapshot) => {
+                delete playerSamuraiSlashes[snapshot.key];
+            });
+        }
+
+        // ========== 승리 화면 ==========
+        function showVictoryScreen(winnerName) {
+            // 대장장이 강화 초기화 (게임 종료 시)
+            smithEnhanceLevel = 0;
+            smithForging = false;
+            CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
+
+            const isWinner = players[myPlayerId] && players[myPlayerId].health > 0 && !players[myPlayerId].isSpectator;
+            const msg = isWinner ? `🎉 승리! 🎉` : `🏆 ${winnerName} 님이 승리했습니다!`;
+            
+            // 화면 중앙에 메시지
+            ctx.fillStyle = 'rgba(0,0,0,0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = isWinner ? '#ffd700' : '#00fff5';
+            ctx.font = 'bold 48px Malgun Gothic';
+            ctx.textAlign = 'center';
+            ctx.fillText(msg, canvas.width / 2, canvas.height / 2);
+
+            // 3초 후 방 전체 삭제 후 새로고침
+            setTimeout(() => {
+                if (currentRoomId) database.ref('rooms/' + currentRoomId).remove();
+                location.reload();
+            }, 3000);
+        }
+
+        function handleKeyDown(e) {
+            const key = e.key.toLowerCase();
+            keys[key] = true;
+            
+            // Shift 대쉬
+            if (key === 'shift' && !keys['shift_pressed']) {
+                keys['shift_pressed'] = true;
+                if (!isSpectating && isAlive) {
+                    // 어쌔신 은신 중 대쉬 시 은신 해제
+                    if (myClass === 'assassin' && assassinStealthActive) {
+                        assassinStealthActive = false;
+                        playersRef.child(myPlayerId).update({ stealthed: false });
+                    }
+                    performDash();
+                }
+            }
+            
+            // R키 홀드 시작 (누구나 3초 홀드 시 강제종료)
+            if (key === 'r' && gameStatus === GAME_STATUS.PLAYING && !rKeyHolding) {
+                rKeyHolding = true;
+                rKeyPressStart = Date.now();
+            }
+        }
+
+        function handleKeyUp(e) {
+            const key = e.key.toLowerCase();
+            keys[key] = false;
+            
+            if (key === 'shift') {
+                keys['shift_pressed'] = false;
+            }
+
+            // R키 뗌 → 초기화
+            if (key === 'r') {
+                rKeyHolding = false;
+                rKeyPressStart = 0;
+                forceStopProgress = 0;
+            }
+        }
+
+        // ========== 마우스 이벤트 ==========
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        }
+
+        // ── 사무라이 차징 취소 (죽음/패링 등) ──
+        function cancelSamuraiCharge() {
+            if (!samuraiCharging) return;
+            samuraiCharging = false;
+            if (myPlayerId) playersRef.child(myPlayerId).update({ samuraiCharging: false });
+        }
+
+        // ── 사무라이 차징 발사 공통 함수 ──
+        function fireSamuraiThrust() {
+            if (!samuraiCharging) return;
+            samuraiCharging = false;
+            // Firebase 차징 상태 해제
+            if (myPlayerId) playersRef.child(myPlayerId).update({ samuraiCharging: false });
+            if (samuraiSlashActive || samuraiParryActive || samuraiCounterActive) return;
+            if (!myPlayerId || !players[myPlayerId]) return;
+            const now = Date.now();
+            const chargedMs = Math.min(now - samuraiChargeStart, SAMURAI_MAX_CHARGE);
+            // 레벨 결정
+            let lvl = SAMURAI_CHARGE_LEVELS[0];
+            for (const l of SAMURAI_CHARGE_LEVELS) {
+                if (chargedMs >= l.minTime) lvl = l;
+            }
+            samuraiCurrentLevel = lvl;
+            // ★ 발사 순간의 마우스 방향으로 재계산
+            const myPlayer = players[myPlayerId];
+            const worldMouseX = mouseX + cameraX;
+            const worldMouseY = mouseY + cameraY;
+            const fdx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+            const fdy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+            samuraiSlashDir = Math.atan2(fdy, fdx);
+            samuraiSlashProgress = 0;
+            samuraiSlashActive = true;
+            samuraiSlashFrames = SAMURAI_SLASH_TOTAL;
+            samuraiSlashHitIds.clear();
+            samuraiSlashDashFrames = lvl.dashFrames;
+            samuraiSlashDashVx = Math.cos(samuraiSlashDir) * lvl.dashSpeed;
+            samuraiSlashDashVy = Math.sin(samuraiSlashDir) * lvl.dashSpeed;
+            const slashData = {
+                ownerId: myPlayerId,
+                dir: samuraiSlashDir,
+                totalFrames: SAMURAI_SLASH_TOTAL,
+                thrustLength: lvl.length,
+                thrustWidth: lvl.width,
+                createdAt: now
+            };
+            samuraiSlashesRef.child(myPlayerId).set(slashData);
+            playerSamuraiSlashes[myPlayerId] = { ...slashData, frames: SAMURAI_SLASH_TOTAL, progress: 0 };
+            lastAttackTime = now;
+        }
+
+        function handleMouseDown(e) {
+            if (e.button !== 0) return;
+            const rect = canvas.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+
+            if (isSpectating || !isAlive) { switchSpectateTarget(1); return; }
+            if (!myPlayerId || !players[myPlayerId]) return;
+            const now = Date.now();
+
+            if (myClass === 'samurai') {
+                // 사무라이: 누르는 순간 차징 시작
+                if (samuraiSlashActive || samuraiParryActive || samuraiCounterActive) return;
+                const stats = CLASSES[myClass].stats;
+                if (now - lastAttackTime < 1000 / stats.attackSpeed) return;
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                samuraiChargeDir = Math.atan2(dy, dx);
+                samuraiCharging = true;
+                samuraiChargeStart = now;
+                // Firebase에 차징 상태 공유
+                playersRef.child(myPlayerId).update({ samuraiCharging: true, samuraiChargeStart: now });
+                // 타이머 없음 - 마우스를 뗄 때만 발사 (풀차징 유지 가능)
+                return;
+            }
+
+            // 사무라이가 아닌 직업은 기존 클릭 로직 그대로
+            const stats = CLASSES[myClass].stats;
+            const attackCooldown = 1000 / stats.attackSpeed;
+            if (now - lastAttackTime < attackCooldown) return;
+
+            if (myClass === 'warrior') {
+                if (warriorSwingActive) return;
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                warriorSwingDir = Math.atan2(dy, dx);
+                warriorSwingActive = true;
+                warriorSwingFrames = WARRIOR_SWING_TOTAL;
+                swingHitIds.clear();
+                if (warriorSpinReady) {
+                    warriorSpinReady = false;
+                    _currentSwingArc = WARRIOR_SPIN_ARC;
+                    _currentSwingRange = WARRIOR_SPIN_RANGE;
+                } else {
+                    _currentSwingArc = WARRIOR_SWING_ARC;
+                    _currentSwingRange = WARRIOR_SWING_RANGE;
+                }
+                const swingData = {
+                    ownerId: myPlayerId,
+                    dir: warriorSwingDir,
+                    arc: _currentSwingArc,
+                    range: _currentSwingRange,
+                    totalFrames: WARRIOR_SWING_TOTAL,
+                    createdAt: Date.now()
+                };
+                swingsRef.child(myPlayerId).set(swingData);
+                playerSwings[myPlayerId] = { ...swingData, frames: WARRIOR_SWING_TOTAL, angle: warriorSwingDir - _currentSwingArc / 2 };
+                lastAttackTime = now;
+            } else if (myClass === 'assassin') {
+                if (assassinStealthActive) {
+                    assassinStealthActive = false;
+                    playersRef.child(myPlayerId).update({ stealthed: false });
+                }
+                if (assassinStabActive) return;
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                assassinStabDir = Math.atan2(dy, dx);
+                assassinStabActive = true;
+                assassinStabFrames = ASSASSIN_STAB_TOTAL;
+                assassinStabHit = false;
+                const stabData = {
+                    ownerId: myPlayerId,
+                    x: myPlayer.x + PLAYER_SIZE / 2,
+                    y: myPlayer.y + PLAYER_SIZE / 2,
+                    dir: assassinStabDir,
+                    totalFrames: ASSASSIN_STAB_TOTAL,
+                    createdAt: now
+                };
+                stabsRef.child(myPlayerId).set(stabData);
+                playerStabs[myPlayerId] = { ...stabData, frames: ASSASSIN_STAB_TOTAL };
+                lastAttackTime = now;
+            } else if (myClass === 'blacksmith') {
+                if (smithForging || smithHammerActive) return;
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                smithHammerDir = Math.atan2(dy, dx);
+                smithHammerActive = true;
+                smithHammerFrames = SMITH_HAMMER_TOTAL;
+                smithHammerHit = false;
+                smithHammerHitIds.clear();
+                const hammerData = {
+                    ownerId: myPlayerId,
+                    x: myPlayer.x + PLAYER_SIZE / 2,
+                    y: myPlayer.y + PLAYER_SIZE / 2,
+                    dir: smithHammerDir,
+                    totalFrames: SMITH_HAMMER_TOTAL,
+                    createdAt: now,
+                    enhanceLevel: smithEnhanceLevel
+                };
+                smithHammersRef.child(myPlayerId).set(hammerData);
+                playerHammers[myPlayerId] = { ...hammerData, frames: SMITH_HAMMER_TOTAL };
+                lastAttackTime = now;
+            } else {
+                shootBullet(mouseX, mouseY);
+                lastAttackTime = now;
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (e.button !== 0) return;
+            if (myClass === 'samurai' && samuraiCharging) {
+                fireSamuraiThrust();
+            }
+        }
+        // 캔버스 밖에서 마우스를 떼도 차징 발사/취소 처리
+        window.addEventListener('mouseup', (e) => {
+            if (e.button !== 0) return;
+            if (myClass === 'samurai' && samuraiCharging) {
+                fireSamuraiThrust();
+            }
+        });
+
+        function handleRightClick(e) {
+            e.preventDefault();
+            // 캔버스 범위 밖 클릭 무시
+            const rect = canvas.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+
+            if (isSpectating || !isAlive) { switchSpectateTarget(-1); return; }
+            if (!myPlayerId || !players[myPlayerId]) return;
+            if (isUsingSkill) return;
+            const now = Date.now();
+            if (now < skillCooldownEnd) return;
+
+            if (myClass === 'warrior') {
+                // 워리어 스킬: 3초 방어 + 이동속도 증가 + 다음 회전 공격 준비
+                warriorSkillActive = true;
+                warriorSkillEnd = now + 3000;
+                warriorSpinReady = true;
+                skillCooldownEnd = now + CLASSES.warrior.skill.cooldown * 1000;
+                // Firebase에 스킬 상태 공유
+                playersRef.child(myPlayerId).update({ warriorSkillActive: true });
+                setTimeout(() => {
+                    warriorSkillActive = false;
+                    warriorSpinReady = false;
+                    playersRef.child(myPlayerId).update({ warriorSkillActive: false });
+                }, 3000);
+            } else if (myClass === 'assassin') {
+                // 어쌔신 스킬: 연기와 함께 은신 돌입
+                assassinStealthActive = true;
+                assassinStealthEnd = now + 3000; // 최대 3초 은신
+                skillCooldownEnd = now + CLASSES.assassin.skill.cooldown * 1000;
+                // Firebase에 은신 상태 공유
+                playersRef.child(myPlayerId).update({ stealthed: true });
+                // 연기 이펙트 로컬 생성 + Firebase 공유
+                const myPlayer = players[myPlayerId];
+                spawnSmokeEffect(myPlayer.x, myPlayer.y);
+                const smokeData = {
+                    ownerId: myPlayerId,
+                    x: myPlayer.x,
+                    y: myPlayer.y,
+                    createdAt: now
+                };
+                smokesRef.child(myPlayerId).set(smokeData);
+                setTimeout(() => smokesRef.child(myPlayerId).remove(), 3000);
+            } else if (myClass === 'samurai') {
+                // 사무라이 패링: 1초 경직 + 공격 무효화, 맞으면 반격 돌진
+                if (samuraiParryActive || samuraiCounterActive || samuraiSlashActive) return;
+                cancelSamuraiCharge(); // 차징 중이면 취소
+                samuraiParryActive = true;
+                samuraiParryHit = false;
+                samuraiParryEnd = now + 1000;
+                skillCooldownEnd = now + CLASSES.samurai.skill.cooldown * 1000;
+                // 패링 방향 = 마우스 방향
+                const myPlayer = players[myPlayerId];
+                const worldMouseX = mouseX + cameraX;
+                const worldMouseY = mouseY + cameraY;
+                const pdx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+                const pdy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+                samuraiParryDir = Math.atan2(pdy, pdx);
+                // Firebase에 패링 상태 공유
+                playersRef.child(myPlayerId).update({ samuraiParrying: true });
+                samuraiSlashesRef.child('parry_' + myPlayerId).set({
+                    ownerId: myPlayerId, type: 'parry', createdAt: now
+                });
+                // 1초 후 패링 종료
+                setTimeout(() => {
+                    if (!samuraiParryActive) return;
+                    samuraiParryActive = false;
+                    playersRef.child(myPlayerId).update({ samuraiParrying: false });
+                    samuraiSlashesRef.child('parry_' + myPlayerId).remove();
+                    if (samuraiParryHit) {
+                        _startSamuraiCounter();
+                    }
+                }, 1000);
+            } else if (myClass === 'blacksmith') {
+                // 대장장이 스킬: 강화 - 2초 경직 후 능력치 상승
+                if (smithForging || smithHammerActive) return;
+                smithForging = true;
+                smithForgeEnd = now + 2000;
+                skillCooldownEnd = now + CLASSES.blacksmith.skill.cooldown * 1000;
+                // Firebase에 강화 상태 공유 (경직 중 표시)
+                playersRef.child(myPlayerId).update({ smithForging: true });
+                // 모루 두드리는 이펙트 공유
+                const myPlayer = players[myPlayerId];
+                const forgeData = {
+                    ownerId: myPlayerId,
+                    x: myPlayer.x + PLAYER_SIZE / 2,
+                    y: myPlayer.y + PLAYER_SIZE / 2,
+                    createdAt: now
+                };
+                smokesRef.child('forge_' + myPlayerId).set(forgeData);
+                setTimeout(() => smokesRef.child('forge_' + myPlayerId).remove(), 2000);
+                // 1.5초 후 경직 해제 + 능력치 상승
+                setTimeout(() => {
+                    smithForging = false;
+                    smithEnhanceLevel++;
+                    // 현재 능력치에 강화 적용 (매 강화마다 +0.5/+5/+0.25 고정 증가)
+                    const cur = CLASSES.blacksmith.stats;
+                    const newMoveSpeed = cur.moveSpeed + 0.5;
+                    const newAttack = cur.attack + 5;
+                    const newAttackSpeed = cur.attackSpeed + 0.25;
+                    // 체력은 현재 체력 + 20 (최대체력도 +10 증가, 풀피로 채워지지 않음)
+                    const curHp = players[myPlayerId] ? players[myPlayerId].health : cur.health;
+                    const newMaxHp = cur.health + 10;
+                    const newHp = Math.min(curHp + 20, newMaxHp); // 현재체력 + 20 (최대체력 초과 불가)
+                    // CLASSES 스탯 로컬 업데이트 (공격 계산에 사용)
+                    CLASSES.blacksmith.stats = {
+                        moveSpeed: newMoveSpeed,
+                        attack: newAttack,
+                        attackSpeed: newAttackSpeed,
+                        health: newMaxHp
+                    };
+                    playersRef.child(myPlayerId).update({
+                        smithForging: false,
+                        smithEnhanceLevel: smithEnhanceLevel,
+                        health: newHp,
+                        maxHealth: newMaxHp
+                    });
+                    // 강화 파티클 이펙트 (로컬 + Firebase)
+                    if (players[myPlayerId]) {
+                        spawnForgeEnhanceEffect(players[myPlayerId].x, players[myPlayerId].y);
+                    }
+                }, 2000);
+            } else {
+                useSkill(mouseX, mouseY);
+            }
+        }
+
+        // ========== 관전 대상 방향 전환 (+1: 다음, -1: 이전) ==========
+        function switchSpectateTarget(direction) {
+            const alivePlayers = Object.keys(players).filter(id =>
+                id !== myPlayerId && id !== DUMMY_ID && !players[id].isSpectator && players[id].health > 0
+            );
+            if (alivePlayers.length === 0) { spectateTargetId = null; return; }
+
+            const currentIdx = alivePlayers.indexOf(spectateTargetId);
+            let nextIdx = (currentIdx + direction + alivePlayers.length) % alivePlayers.length;
+            spectateTargetId = alivePlayers[nextIdx];
+        }
+
+        // ========== 쿨타임 HUD 업데이트 ==========
+        function updateCooldownHUD() {
+            const now = Date.now();
+
+            // 대쉬 쿨타임
+            const dashTotal = DASH_COOLDOWN * 1000;
+            const dashRemaining = Math.max(0, dashCooldownEnd - now);
+            const dashPct = dashRemaining === 0 ? 100 : Math.round((1 - dashRemaining / dashTotal) * 100);
+            const dashBar = document.getElementById('dashCoolBar');
+            const dashText = document.getElementById('dashCoolText');
+            if (dashBar && dashText) {
+                dashBar.style.width = dashPct + '%';
+                dashText.textContent = dashRemaining === 0 ? '준비' : (dashRemaining / 1000).toFixed(1) + 's';
+                dashText.style.color = dashRemaining === 0 ? '#00fff5' : '#aaa';
+            }
+
+            // 스킬 쿨타임 + 스킬명 동적 표시
+            const classData = CLASSES[myClass];
+            const skillName = classData ? classData.skill.name : '스킬';
+            const skillTotal = classData ? classData.skill.cooldown * 1000 : 20000;
+            const skillRemaining = Math.max(0, skillCooldownEnd - now);
+            const skillPct = skillRemaining === 0 ? 100 : Math.round((1 - skillRemaining / skillTotal) * 100);
+            const skillBar = document.getElementById('skillCoolBar');
+            const skillText = document.getElementById('skillCoolText');
+            const skillNameLabel = document.getElementById('skillNameLabel');
+            const skillActionLabel = document.getElementById('skillActionLabel');
+            if (skillNameLabel) skillNameLabel.textContent = skillName;
+            if (skillActionLabel) skillActionLabel.textContent = skillName;
+            if (skillBar && skillText) {
+                skillBar.style.width = skillPct + '%';
+                skillText.textContent = skillRemaining === 0 ? '준비' : (skillRemaining / 1000).toFixed(1) + 's';
+                skillText.style.color = skillRemaining === 0 ? '#00ff88' : '#aaa';
+                skillBar.style.background = skillRemaining === 0 ? '#00ff88' : '#ff4444';
+            }
+        }
+
+        // ========== 대쉬 시스템 (돌진) ==========
+        function performDash() {
+            if (!myPlayerId || !players[myPlayerId]) return;
+            if (isDashing) return;
+            const now = Date.now();
+            if (now < dashCooldownEnd) return;
+
+            const myPlayer = players[myPlayerId];
+            const worldMouseX = mouseX + cameraX;
+            const worldMouseY = mouseY + cameraY;
+            const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+            const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return;
+
+            // 대쉬 속도 = 이동속도 * 5.6 (기준 moveSpeed 5 → speed 28)
+            // 어쌔신 은신 중 대쉬 시 은신 이동속도(2배) 적용
+            const baseSpeed = CLASSES[myClass].stats.moveSpeed;
+            const effectiveSpeed = (myClass === 'assassin' && assassinStealthActive)
+                ? baseSpeed * 2
+                : baseSpeed;
+            const DASH_SPEED = effectiveSpeed * 5.6;
+
+            // 돌진 방향 저장
+            dashVx = (dx / dist) * DASH_SPEED;
+            dashVy = (dy / dist) * DASH_SPEED;
+            dashRemainFrames = DASH_TOTAL_FRAMES;
+            isDashing = true;
+            dashCooldownEnd = now + DASH_COOLDOWN * 1000;
+        }
+
+        // ========== 어쌔신 연기 이펙트 ==========
+        function spawnSmokeEffect(x, y) {
+            const cx = x + PLAYER_SIZE / 2;
+            const cy = y + PLAYER_SIZE / 2;
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2 + 0.5;
+                const size = Math.random() * 10 + 5;
+                assassinSmokeParticles.push({
+                    x: cx + (Math.random() - 0.5) * 20,
+                    y: cy + (Math.random() - 0.5) * 20,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 0.5,
+                    radius: size,
+                    life: 1.0,
+                    decay: 0.025 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // ========== 어쌔신 찌르기 업데이트 ==========
+        function updateAssassinStab() {
+            // ── 내 찌르기 (충돌 판정 + 진행) ──
+            if (assassinStabActive && myClass === 'assassin' && myPlayerId && players[myPlayerId]) {
+                const myPlayer = players[myPlayerId];
+                const cx = myPlayer.x + PLAYER_SIZE / 2;
+                const cy = myPlayer.y + PLAYER_SIZE / 2;
+                const progress = 1 - assassinStabFrames / ASSASSIN_STAB_TOTAL;
+
+                // 찌르기 끝부분 위치
+                const tipX = cx + Math.cos(assassinStabDir) * ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
+                const tipY = cy + Math.sin(assassinStabDir) * ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
+
+                // playerStabs에도 내 현재 상태 반영 (렌더링에 사용)
+                playerStabs[myPlayerId] = {
+                    ownerId: myPlayerId,
+                    x: cx,
+                    y: cy,
+                    dir: assassinStabDir,
+                    totalFrames: ASSASSIN_STAB_TOTAL,
+                    frames: assassinStabFrames,
+                    createdAt: playerStabs[myPlayerId]?.createdAt || Date.now()
+                };
+
+                if (!assassinStabHit) {
+                    for (let id in players) {
+                        if (id === myPlayerId) continue;
+                        const t = players[id];
+                        if (t.isSpectator || t.health <= 0) continue;
+                        const tx = t.x + PLAYER_SIZE / 2;
+                        const ty = t.y + PLAYER_SIZE / 2;
+                        // 찌르기 선분과 타겟 사이 최단거리로 히트판정 (넓이 증가)
+                        const stabEndX = cx + Math.cos(assassinStabDir) * ASSASSIN_STAB_RANGE;
+                        const stabEndY = cy + Math.sin(assassinStabDir) * ASSASSIN_STAB_RANGE;
+                        const ldx = stabEndX - cx;
+                        const ldy = stabEndY - cy;
+                        const lenSq = ldx * ldx + ldy * ldy;
+                        const t2 = Math.max(0, Math.min(1, ((tx - cx) * ldx + (ty - cy) * ldy) / lenSq));
+                        const nearX = cx + t2 * ldx;
+                        const nearY = cy + t2 * ldy;
+                        const dist = Math.sqrt((nearX - tx) ** 2 + (nearY - ty) ** 2);
+                        const HIT_WIDTH = PLAYER_SIZE / 2 + 14;
+                        if (dist < HIT_WIDTH) {
+                            assassinStabHit = true;
+                            dealDamage(id, CLASSES.assassin.stats.attack, tx, ty);
+                            break;
+                        }
+                    }
+                }
+
+                assassinStabFrames--;
+                if (assassinStabFrames <= 0) {
+                    assassinStabActive = false;
+                    delete playerStabs[myPlayerId];
+                    stabsRef.child(myPlayerId).remove();
+                }
+            }
+
+            // ── 다른 플레이어 찌르기 애니메이션 진행 ──
+            for (const id in playerStabs) {
+                if (id === myPlayerId) continue;
+                const stab = playerStabs[id];
+                stab.frames--;
+                if (stab.frames <= 0) delete playerStabs[id];
+            }
+        }
+
+        // ========== 어쌔신 연기 파티클 업데이트 ==========
+        function updateSmokeParticles() {
+            for (let i = assassinSmokeParticles.length - 1; i >= 0; i--) {
+                const p = assassinSmokeParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.95;
+                p.vy *= 0.95;
+                p.life -= p.decay;
+                if (p.life <= 0) assassinSmokeParticles.splice(i, 1);
+            }
+        }
+
+        // 대쉬 파티클 생성 + Firebase 공유
+        function spawnDashParticles(x, y) {
+            const now = Date.now();
+            for (let i = 0; i < 5; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2.5 + 0.5;
+                const decay = 0.07 + Math.random() * 0.06;
+                const p = {
+                    id: myPlayerId + '_p_' + now + '_' + i,
+                    ownerId: myPlayerId,
+                    x: x + PLAYER_SIZE / 2,
+                    y: y + PLAYER_SIZE / 2,
+                    vx: Math.cos(angle) * speed - dashVx * 0.18,
+                    vy: Math.sin(angle) * speed - dashVy * 0.18,
+                    radius: Math.random() * 5 + 3,
+                    life: 1.0,
+                    decay: decay,
+                    createdAt: now,  // 수신 측에서 경과 시간 보정에 사용
+                    color: players[myPlayerId] ? players[myPlayerId].color : '#fff'
+                };
+                particleIds.add(p.id);
+                particles.push(p);
+                particlesRef.child(p.id).set(p);
+                setTimeout(() => particlesRef.child(p.id).remove(), 1500);
+            }
+        }
+
+        // 파티클 업데이트
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.88;
+                p.vy *= 0.88;
+                p.life -= p.decay;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        // 히트 이펙트 생성 + Firebase 공유
+        function spawnHitEffect(x, y, isFatal) {
+            const now = Date.now();
+            const ef = {
+                id: myPlayerId + '_hit_' + now,
+                ownerId: myPlayerId,
+                x, y,
+                isFatal,
+                createdAt: now
+            };
+            // 로컬 생성
+            _addHitEffect(ef);
+            // Firebase 공유
+            hitEffectsRef.child(ef.id).set(ef);
+            setTimeout(() => hitEffectsRef.child(ef.id).remove(), 2000); // 600→2000ms
+        }
+
+        function _addHitEffect(ef) {
+            const count = ef.isFatal ? 18 : 10;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * (ef.isFatal ? 6 : 4) + 1.5;
+                hitEffects.push({
+                    x: ef.x,
+                    y: ef.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    decay: ef.isFatal ? 0.055 : 0.08,
+                    radius: Math.random() * (ef.isFatal ? 5 : 3) + 2,
+                    color: ef.isFatal ? '#ff4444' : '#ffaa00'
+                });
+            }
+            // 화면 흔들림 효과 (치명타만)
+            if (ef.isFatal) flashScreen('#ff000033', 200);
+        }
+
+        let screenFlashColor = null;
+        let screenFlashEnd = 0;
+        function flashScreen(color, duration) {
+            screenFlashColor = color;
+            screenFlashEnd = Date.now() + duration;
+        }
+
+        function updateHitEffects() {
+            for (let i = hitEffects.length - 1; i >= 0; i--) {
+                const e = hitEffects[i];
+                e.x += e.vx;
+                e.y += e.vy;
+                e.vx *= 0.85;
+                e.vy *= 0.85;
+                e.life -= e.decay;
+                if (e.life <= 0) hitEffects.splice(i, 1);
+            }
+        }
+
+        // ========== 총알 발사 (로컬 + Firebase 동기화) ==========
+        function shootBullet(targetScreenX, targetScreenY, isSkill = false) {
+            if (!myPlayerId || !players[myPlayerId]) return;
+            const myPlayer = players[myPlayerId];
+            const classData = CLASSES[myClass];
+            const startX = myPlayer.x + PLAYER_SIZE / 2;
+            const startY = myPlayer.y + PLAYER_SIZE / 2;
+            const targetX = targetScreenX + cameraX;
+            const targetY = targetScreenY + cameraY;
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance === 0) return;
+
+            const speed = isSkill ? classData.skill.bulletSpeed : classData.bulletSpeed;
+            const dirX = dx / distance;
+            const dirY = dy / distance;
+            const now = Date.now();
+            const bulletData = {
+                id: myPlayerId + '_' + now + '_' + Math.random().toString(36).substr(2,5),
+                x: startX,
+                y: startY,
+                vx: dirX * speed,
+                vy: dirY * speed,
+                damage: classData.stats.attack,
+                ownerId: myPlayerId,
+                createdAt: now,
+                maxLifetime: isSkill ? 4500 : 4000,
+                isSkillBullet: isSkill
+            };
+            bulletIds.add(bulletData.id);
+            bullets.push(bulletData);
+            // ⚡ Firebase에 즉시 공유 (setPriority 제거 → 단순 set으로 안정성 향상)
+            bulletsRef.child(bulletData.id).set(bulletData);
+            bulletsRef.child(bulletData.id).onDisconnect().remove();
+        }
+
+        // ========== 스킬 사용 (연사) ==========
+        function useSkill(targetScreenX, targetScreenY) {
+            if (!myPlayerId || !players[myPlayerId]) return;
+            
+            const myPlayer = players[myPlayerId];
+            const classData = CLASSES[myClass];
+            
+            // 방향 계산 (월드 좌표)
+            const startX = myPlayer.x + PLAYER_SIZE / 2;
+            const startY = myPlayer.y + PLAYER_SIZE / 2;
+            const targetX = targetScreenX + cameraX;
+            const targetY = targetScreenY + cameraY;
+            
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+                // 스킬 방향 저장 (고정)
+                skillDirection.x = dx / distance;
+                skillDirection.y = dy / distance;
+                
+                // 스킬 상태 설정
+                isUsingSkill = true;
+                skillBulletCount = 0;
+                lastSkillBullet = Date.now();
+                
+                console.log('연사 스킬 사용!');
+            }
+        }
+
+        // ========== 스킬 업데이트 (연사 발사) ==========
+        function updateSkill() {
+            if (!isUsingSkill) return;
+            if (!myPlayerId || !players[myPlayerId]) return;
+            const now = Date.now();
+            const classData = CLASSES[myClass];
+            const myPlayer = players[myPlayerId];
+
+            if (now - lastSkillBullet >= classData.skill.bulletInterval) {
+                const startX = myPlayer.x + PLAYER_SIZE / 2;
+                const startY = myPlayer.y + PLAYER_SIZE / 2;
+                const bulletData = {
+                    id: myPlayerId + '_skill_' + now + '_' + skillBulletCount,
+                    x: startX,
+                    y: startY,
+                    vx: skillDirection.x * classData.skill.bulletSpeed,
+                    vy: skillDirection.y * classData.skill.bulletSpeed,
+                    damage: classData.stats.attack,
+                    ownerId: myPlayerId,
+                    createdAt: now,
+                    maxLifetime: 3000,
+                    isSkillBullet: true
+                };
+                bulletIds.add(bulletData.id);
+                bullets.push(bulletData);
+                bulletsRef.child(bulletData.id).set(bulletData);
+                bulletsRef.child(bulletData.id).onDisconnect().remove();
+
+                skillBulletCount++;
+                lastSkillBullet = now;
+
+                if (skillBulletCount >= classData.skill.bullets) {
+                    isUsingSkill = false;
+                    skillCooldownEnd = now + classData.skill.cooldown * 1000;
+                }
+            }
+        }
+
+        // ========== 워리어 검 휘두르기 업데이트 ==========
+        function updateWarriorSwing() {
+            // ── 내 스윙 (충돌 판정 + 진행) ──
+            if (warriorSwingActive && myClass === 'warrior' && myPlayerId && players[myPlayerId]) {
+                const myPlayer = players[myPlayerId];
+                const cx = myPlayer.x + PLAYER_SIZE / 2;
+                const cy = myPlayer.y + PLAYER_SIZE / 2;
+                const progress = 1 - warriorSwingFrames / WARRIOR_SWING_TOTAL;
+                const halfArc = _currentSwingArc / 2;
+                warriorSwingAngle = warriorSwingDir - halfArc + _currentSwingArc * progress;
+
+                // playerSwings에도 내 현재 상태 반영 (렌더링에 사용)
+                playerSwings[myPlayerId] = {
+                    ownerId: myPlayerId,
+                    dir: warriorSwingDir,
+                    arc: _currentSwingArc,
+                    range: _currentSwingRange,
+                    totalFrames: WARRIOR_SWING_TOTAL,
+                    frames: warriorSwingFrames,
+                    angle: warriorSwingAngle,
+                    createdAt: playerSwings[myPlayerId]?.createdAt || Date.now()
+                };
+
+                const isSpinAttack = (_currentSwingArc >= Math.PI * 1.9);
+
+                for (let id in players) {
+                    if (id === myPlayerId || swingHitIds.has(id)) continue;
+                    const t = players[id];
+                    if (t.isSpectator || t.health <= 0) continue;
+
+                    const tx = t.x + PLAYER_SIZE / 2;
+                    const ty = t.y + PLAYER_SIZE / 2;
+                    const dx = tx - cx;
+                    const dy = ty - cy;
+                    const distToTarget = Math.sqrt(dx * dx + dy * dy);
+
+                    // 거리 체크: 검 범위 + 플레이어 반경
+                    if (distToTarget > _currentSwingRange + PLAYER_SIZE / 2) continue;
+
+                    if (isSpinAttack) {
+                        // ── 360도 회전: 범위 안이면 무조건 히트 (각도 무관) ──
+                        swingHitIds.add(id);
+                        dealDamage(id, CLASSES.warrior.stats.attack, tx, ty);
+                    } else {
+                        // ── 일반 스윙: 현재까지 휘두른 호(arc) 안에 있으면 히트 ──
+                        const swingStartAngle = warriorSwingDir - halfArc;
+                        const swungArc = _currentSwingArc * progress;
+                        const angleToTarget = Math.atan2(dy, dx);
+
+                        // 각도 차이를 [0, swungArc] 범위로 정규화
+                        let relAngle = angleToTarget - swingStartAngle;
+                        relAngle = relAngle - Math.floor(relAngle / (Math.PI * 2)) * Math.PI * 2;
+
+                        if (relAngle <= swungArc) {
+                            swingHitIds.add(id);
+                            dealDamage(id, CLASSES.warrior.stats.attack, tx, ty);
+                        }
+                    }
+                }
+
+                warriorSwingFrames--;
+                if (warriorSwingFrames <= 0) {
+                    warriorSwingActive = false;
+                    swingHitIds.clear();
+                    delete playerSwings[myPlayerId];
+                    swingsRef.child(myPlayerId).remove();
+                }
+            }
+
+            // ── 다른 플레이어 스윙 애니메이션 진행 ──
+            for (const id in playerSwings) {
+                if (id === myPlayerId) continue;
+                const sw = playerSwings[id];
+                const progress = 1 - sw.frames / sw.totalFrames;
+                sw.angle = sw.dir - sw.arc / 2 + sw.arc * progress;
+                sw.frames--;
+                if (sw.frames <= 0) delete playerSwings[id];
+            }
+        }
+
+        // ========== 대장장이 망치 공격 업데이트 ==========
+        function updateSmithHammer() {
+            // ── 내 망치 공격 (충돌 판정 + 진행) ──
+            if (smithHammerActive && myClass === 'blacksmith' && myPlayerId && players[myPlayerId]) {
+                const myPlayer = players[myPlayerId];
+                const cx = myPlayer.x + PLAYER_SIZE / 2;
+                const cy = myPlayer.y + PLAYER_SIZE / 2;
+                const progress = 1 - smithHammerFrames / SMITH_HAMMER_TOTAL;
+
+                // playerHammers에도 내 현재 상태 반영 (렌더링에 사용)
+                playerHammers[myPlayerId] = {
+                    ownerId: myPlayerId,
+                    x: cx,
+                    y: cy,
+                    dir: smithHammerDir,
+                    totalFrames: SMITH_HAMMER_TOTAL,
+                    frames: smithHammerFrames,
+                    enhanceLevel: smithEnhanceLevel,
+                    createdAt: playerHammers[myPlayerId]?.createdAt || Date.now()
+                };
+
+                // 판정은 예고 구간(SMITH_HAMMER_HIT_FRAME) 이후부터만 활성화
+                const elapsed = SMITH_HAMMER_TOTAL - smithHammerFrames;
+                if (elapsed >= SMITH_HAMMER_HIT_FRAME && !smithHammerHit) {                    const frontDist = SMITH_HAMMER_HEIGHT;
+                    const cosD = Math.cos(smithHammerDir);
+                    const sinD = Math.sin(smithHammerDir);
+                    // 직각 벡터
+                    const perpX = -sinD;
+                    const perpY = cosD;
+
+                    for (let id in players) {
+                        if (id === myPlayerId || smithHammerHitIds.has(id)) continue;
+                        const t = players[id];
+                        if (t.isSpectator || t.health <= 0) continue;
+                        const tx = t.x + PLAYER_SIZE / 2;
+                        const ty = t.y + PLAYER_SIZE / 2;
+                        const dx = tx - cx;
+                        const dy = ty - cy;
+                        // 로컬 좌표로 변환 (정방향, 직각)
+                        const forward = dx * cosD + dy * sinD;
+                        const lateral = dx * perpX + dy * perpY;
+                        // 사각형 범위 안이면 히트 (캐릭터 바로 앞 정사각형)
+                        const offsetFront = PLAYER_SIZE / 2 + 4;
+                        if (forward >= offsetFront && forward <= offsetFront + SMITH_HAMMER_RANGE * 2 + PLAYER_SIZE / 2
+                            && Math.abs(lateral) <= SMITH_HAMMER_RANGE + PLAYER_SIZE / 2) {
+                            smithHammerHitIds.add(id);
+                            dealDamage(id, CLASSES.blacksmith.stats.attack, tx, ty);
+                        }
+                    }
+                    if (smithHammerHitIds.size > 0) smithHammerHit = true;
+                }
+
+                smithHammerFrames--;
+                if (smithHammerFrames <= 0) {
+                    smithHammerActive = false;
+                    smithHammerHitIds.clear();
+                    delete playerHammers[myPlayerId];
+                    smithHammersRef.child(myPlayerId).remove();
+                }
+            }
+
+            // ── 다른 플레이어 망치 애니메이션 진행 ──
+            for (const id in playerHammers) {
+                if (id === myPlayerId) continue;
+                const h = playerHammers[id];
+                h.frames--;
+                if (h.frames <= 0) delete playerHammers[id];
+            }
+        }
+
+        // ========== 사무라이 반격 돌진 시작 ==========
+        function _startSamuraiCounter() {
+            samuraiCounterActive = true;
+            samuraiCounterFrames = SAMURAI_COUNTER_FRAMES;
+            samuraiCounterHitIds.clear();
+            // ★ 반격 발동 순간의 마우스 방향으로 재계산
+            if (myPlayerId && players[myPlayerId]) {
+                const mp = players[myPlayerId];
+                const wdx = (mouseX + cameraX) - (mp.x + PLAYER_SIZE / 2);
+                const wdy = (mouseY + cameraY) - (mp.y + PLAYER_SIZE / 2);
+                samuraiParryDir = Math.atan2(wdy, wdx);
+            }
+            samuraiCounterVx = Math.cos(samuraiParryDir) * SAMURAI_COUNTER_SPEED;
+            samuraiCounterVy = Math.sin(samuraiParryDir) * SAMURAI_COUNTER_SPEED;
+            // Firebase 공유: 반격 슬래시로 표시
+            const now = Date.now();
+            samuraiSlashesRef.child('counter_' + myPlayerId).set({
+                ownerId: myPlayerId, type: 'counter',
+                dir: samuraiParryDir, totalFrames: SAMURAI_COUNTER_FRAMES, createdAt: now
+            });
+            playerSamuraiSlashes['counter_' + myPlayerId] = {
+                ownerId: myPlayerId, type: 'counter',
+                dir: samuraiParryDir, totalFrames: SAMURAI_COUNTER_FRAMES,
+                frames: SAMURAI_COUNTER_FRAMES, angle: samuraiParryDir, createdAt: now
+            };
+        }
+
+        // ========== 사무라이 업데이트 ==========
+        function updateSamurai() {
+            if (!myPlayerId || !players[myPlayerId] || myClass !== 'samurai') {
+                // 다른 플레이어 사무라이 슬래시 애니메이션 진행
+                for (const key in playerSamuraiSlashes) {
+                    const s = playerSamuraiSlashes[key];
+                    if (s.ownerId === myPlayerId) continue;
+                    s.progress = 1 - s.frames / s.totalFrames;
+                    s.frames--;
+                    if (s.frames <= 0) delete playerSamuraiSlashes[key];
+                }
+                return;
+            }
+
+            const myPlayer = players[myPlayerId];
+            const cx = myPlayer.x + PLAYER_SIZE / 2;
+            const cy = myPlayer.y + PLAYER_SIZE / 2;
+
+            // ── 반격 돌진 ──
+            if (samuraiCounterActive && samuraiCounterFrames > 0) {
+                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiCounterVx));
+                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiCounterVy));
+                playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y });
+
+                // 경로상 적 피해
+                for (let id in players) {
+                    if (id === myPlayerId || samuraiCounterHitIds.has(id)) continue;
+                    const t = players[id];
+                    if (t.isSpectator || t.health <= 0) continue;
+                    const tx = t.x + PLAYER_SIZE / 2;
+                    const ty = t.y + PLAYER_SIZE / 2;
+                    const dist = Math.sqrt((myPlayer.x + PLAYER_SIZE/2 - tx)**2 + (myPlayer.y + PLAYER_SIZE/2 - ty)**2);
+                    if (dist < PLAYER_SIZE + 10) {
+                        samuraiCounterHitIds.add(id);
+                        dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty);
+                    }
+                }
+
+                samuraiCounterFrames--;
+                if (samuraiCounterFrames <= 0) {
+                    samuraiCounterActive = false;
+                    samuraiCounterHitIds.clear();
+                    samuraiSlashesRef.child('counter_' + myPlayerId).remove();
+                    delete playerSamuraiSlashes['counter_' + myPlayerId];
+                }
+            }
+
+            // ── 찌르기 ──
+            if (samuraiSlashActive) {
+                samuraiSlashProgress = 1 - samuraiSlashFrames / SAMURAI_SLASH_TOTAL;
+
+                // 돌진
+                if (samuraiSlashDashFrames > 0) {
+                    myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiSlashDashVx));
+                    myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiSlashDashVy));
+                    playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y });
+                    samuraiSlashDashFrames--;
+                }
+
+                // 렌더링용 내 슬래시 상태 갱신
+                const _lvl = samuraiCurrentLevel || SAMURAI_CHARGE_LEVELS[3];
+                playerSamuraiSlashes[myPlayerId] = {
+                    ownerId: myPlayerId, type: 'slash',
+                    dir: samuraiSlashDir, totalFrames: SAMURAI_SLASH_TOTAL,
+                    frames: samuraiSlashFrames, progress: samuraiSlashProgress,
+                    thrustLength: _lvl.length, thrustWidth: _lvl.width,
+                    createdAt: playerSamuraiSlashes[myPlayerId]?.createdAt || Date.now()
+                };
+
+                // 히트 판정 (직사각형 찌르기) - progress > 0.25부터
+                if (samuraiSlashProgress > 0.25) {
+                    const lvl = samuraiCurrentLevel || SAMURAI_CHARGE_LEVELS[3];
+                    const thrustLength = lvl.length * samuraiSlashProgress;
+                    const halfW = lvl.width / 2 + PLAYER_SIZE / 2;
+                    const dirX = Math.cos(samuraiSlashDir);
+                    const dirY = Math.sin(samuraiSlashDir);
+
+                    for (let id in players) {
+                        if (id === myPlayerId || samuraiSlashHitIds.has(id)) continue;
+                        const t = players[id];
+                        if (t.isSpectator || t.health <= 0) continue;
+                        const tx = t.x + PLAYER_SIZE / 2;
+                        const ty = t.y + PLAYER_SIZE / 2;
+
+                        const relX = tx - (myPlayer.x + PLAYER_SIZE / 2);
+                        const relY = ty - (myPlayer.y + PLAYER_SIZE / 2);
+                        const parallelDist = relX * dirX + relY * dirY;
+                        const perpDist = Math.abs(-relY * dirX + relX * dirY);
+
+                        // 시작점을 -PLAYER_SIZE까지 확장해 돌진 후 바로 붙은 적도 판정
+                        if (parallelDist >= -PLAYER_SIZE && parallelDist <= thrustLength && perpDist < halfW) {
+                            samuraiSlashHitIds.add(id);
+                            dealDamage(id, lvl.dmg, tx, ty);
+                        }
+                    }
+                }
+
+                samuraiSlashFrames--;
+                if (samuraiSlashFrames <= 0) {
+                    samuraiSlashActive = false;
+                    samuraiSlashHitIds.clear();
+                    delete playerSamuraiSlashes[myPlayerId];
+                    samuraiSlashesRef.child(myPlayerId).remove();
+                }
+            }
+
+            // ── 다른 플레이어 슬래시 애니메이션 ──
+            for (const key in playerSamuraiSlashes) {
+                const s = playerSamuraiSlashes[key];
+                if (s.ownerId === myPlayerId) continue;
+                if (s.type === 'counter') {
+                    s.frames--;
+                    if (s.frames <= 0) delete playerSamuraiSlashes[key];
+                } else {
+                    s.progress = 1 - s.frames / s.totalFrames;
+                    s.frames--;
+                    if (s.frames <= 0) delete playerSamuraiSlashes[key];
+                }
+            }
+        }
+
+        // ========== 중앙 피해 처리 함수 ==========
+        // 모든 공격은 반드시 이 함수를 통해 피해를 줌.
+        // 패링은 여기서 HP를 건드리기 전에 먼저 차단 → 딸피여도 안전.
+        // 향후 직업 추가 시 dealDamage만 쓰면 자동으로 패링 적용됨.
+        function dealDamage(targetId, dmg, hitX, hitY) {
+            const target = players[targetId];
+            if (!target || target.isSpectator || target.health <= 0) return;
+
+            // ── 사무라이 패링: HP 건드리기 전에 먼저 차단 ──
+            // target.samuraiParrying은 Firebase players 필드 → 항상 최신 상태
+            if (target.samuraiParrying) {
+                // 공격자 클라이언트에서 HP를 건드리지 않고 튕겨냄
+                spawnHitEffect(hitX, hitY, false);
+                // 피격자에게 패링 히트 신호 전송 (피격자 클라이언트가 반격 트리거)
+                parryHitsRef.child(targetId).set({ targetId, createdAt: Date.now() });
+                setTimeout(() => parryHitsRef.child(targetId).remove(), 1000);
+                return;
+            }
+
+            const newHp = Math.max(0, target.health - dmg);
+            const isFatal = newHp <= 0;
+            playersRef.child(targetId).update({ health: newHp });
+            if (isFatal) playersRef.child(targetId).update({ isSpectator: true });
+            spawnHitEffect(hitX, hitY, isFatal);
+        }
+
+        // ── 패링 반격 트리거 ──
+        // 피격자 본인 클라이언트에서 hitEffectsRef를 통해 패링 히트 신호를 받아 반격.
+        // dealDamage가 HP를 건드리지 않으므로 HP 리스너로는 감지 불가.
+        // 대신 공격자가 dealDamage에서 패링을 감지하면 parryHitRef에 신호를 쏜다.
+        function _checkAndTriggerParry() {
+            if (myClass !== 'samurai' || !samuraiParryActive || samuraiParryHit) return;
+            samuraiParryHit = true;
+            samuraiParryActive = false;
+            playersRef.child(myPlayerId).update({ samuraiParrying: false });
+            samuraiSlashesRef.child('parry_' + myPlayerId).remove();
+            _startSamuraiCounter();
+        }
+        function spawnForgeEnhanceEffect(x, y) {
+            const now = Date.now();
+            const cx = x + PLAYER_SIZE / 2;
+            const cy = y + PLAYER_SIZE / 2;
+            // 황금 파티클 분출
+            for (let i = 0; i < 25; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 1.5;
+                const p = {
+                    id: myPlayerId + '_forge_' + now + '_' + i,
+                    ownerId: myPlayerId,
+                    x: cx + (Math.random() - 0.5) * 20,
+                    y: cy + (Math.random() - 0.5) * 20,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1.5,
+                    radius: Math.random() * 6 + 3,
+                    life: 1.0,
+                    decay: 0.03 + Math.random() * 0.03,
+                    createdAt: now,
+                    color: i % 2 === 0 ? '#ffd700' : '#ff8c00'
+                };
+                particleIds.add(p.id);
+                particles.push(p);
+                particlesRef.child(p.id).set(p);
+                setTimeout(() => particlesRef.child(p.id).remove(), 2500);
+            }
+        }
+
+        // ========== 총알 업데이트 ==========
+        function updateBullets() {
+            const now = Date.now();
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+
+                // 수명 초과
+                if (now - bullet.createdAt > bullet.maxLifetime) {
+                    if (bullet.ownerId === myPlayerId) bulletsRef.child(bullet.id).remove();
+                    bulletIds.delete(bullet.id);
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                // 맵 밖
+                if (bullet.x < -100 || bullet.x > 2100 || bullet.y < -100 || bullet.y > 2100) {
+                    if (bullet.ownerId === myPlayerId) bulletsRef.child(bullet.id).remove();
+                    bulletIds.delete(bullet.id);
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // ===== 충돌 감지 (총알 발사자만 처리) =====
+                if (bullet.ownerId !== myPlayerId) continue;
+                for (let id in players) {
+                    if (id === bullet.ownerId) continue;
+                    const target = players[id];
+                    if (target.isSpectator || target.health <= 0) continue;
+                    const tx = target.x + PLAYER_SIZE / 2;
+                    const ty = target.y + PLAYER_SIZE / 2;
+                    const dist = Math.sqrt((bullet.x - tx) ** 2 + (bullet.y - ty) ** 2);
+                    if (dist < PLAYER_SIZE / 2 + (bullet.isSkillBullet ? 6 : 4)) {
+                        // 워리어 스킬 중이면 피해 50% 감소
+                        let dmg = bullet.damage;
+                        if (target.warriorSkillActive) dmg = Math.ceil(dmg * 0.5);
+                        dealDamage(id, dmg, bullet.x, bullet.y);
+
+                        bulletsRef.child(bullet.id).remove();
+                        bulletIds.delete(bullet.id);
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ========== 관전 대상 선택 ==========
+        function pickRandomSpectateTarget() {
+            const alivePlayers = Object.keys(players).filter(id =>
+                id !== myPlayerId && id !== DUMMY_ID && !players[id].isSpectator && players[id].health > 0
+            );
+            if (alivePlayers.length === 0) {
+                spectateTargetId = null;
+                return;
+            }
+            const randomIdx = Math.floor(Math.random() * alivePlayers.length);
+            spectateTargetId = alivePlayers[randomIdx];
+        }
+
+        // ========== 게임 강제 종료 (누구나) ==========
+        function stopGame() {
+            if (isHost && currentRoomId) {
+                database.ref('rooms/' + currentRoomId).remove();
+            } else {
+                gameStateRef.update({ status: GAME_STATUS.LOBBY });
+                playersRef.remove();
+            }
+            location.reload();
+        }
+
+        // ========== 게임 루프 ==========
+        function gameLoop() {
+            if (gameStatus !== GAME_STATUS.PLAYING) return;
+            
+            update();
+            render();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            // R키 홀드 → 강제 종료 체크 (누구나)
+            if (rKeyHolding && gameStatus === GAME_STATUS.PLAYING) {
+                const held = Date.now() - rKeyPressStart;
+                forceStopProgress = Math.min(100, (held / 3000) * 100);
+                if (held >= 3000) {
+                    rKeyHolding = false;
+                    stopGame();
+                    return;
+                }
+            }
+
+            // 관전 모드 카메라
+            if (isSpectating || !isAlive) {
+                if (spectateTargetId && players[spectateTargetId]) {
+                    const target = players[spectateTargetId];
+                    cameraX = target.x - canvas.width / 2 + PLAYER_SIZE / 2;
+                    cameraY = target.y - canvas.height / 2 + PLAYER_SIZE / 2;
+                }
+                updateBullets();
+                updateParticles();
+                updateHitEffects();
+                updateWarriorSwing();  // 워리어 스윙도 업데이트 (다른 플레이어 애니메이션)
+                updateAssassinStab();  // 어쌔신 찌르기 애니메이션
+                updateSmokeParticles(); // 연기 파티클
+                updateSmithHammer();   // 대장장이 망치 공격 애니메이션
+                updateSamurai();       // 사무라이 베기/패링/반격 애니메이션
+                updateCooldownHUD();
+                document.getElementById('spectateHint').style.display = 'block';
+                return;
+            }
+
+            if (!myPlayerId || !players[myPlayerId]) return;
+            
+            const myPlayer = players[myPlayerId];
+            const stats = CLASSES[myClass].stats;
+            let moved = false;
+
+            // 이동속도 (워리어 스킬 시 25% 증가, 어쌔신 은신 시 2배, 대장장이 경직 시 0)
+            const curSpeed = (smithForging || samuraiParryActive)
+                ? 0
+                : (myClass === 'warrior' && warriorSkillActive)
+                ? stats.moveSpeed * 1.25
+                : (myClass === 'assassin' && assassinStealthActive)
+                ? stats.moveSpeed * 2
+                : stats.moveSpeed;
+
+            // 돌진 처리
+            if (samuraiCounterActive) {
+                // 사무라이 반격 돌진 중 — updateSamurai에서 처리
+                moved = true;
+            } else if (isDashing && dashRemainFrames > 0) {
+                spawnDashParticles(myPlayer.x, myPlayer.y);
+                myPlayer.x += dashVx;
+                myPlayer.y += dashVy;
+                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x));
+                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y));
+                dashRemainFrames--;
+                moved = true;
+                if (dashRemainFrames <= 0) isDashing = false;
+            } else {
+                if (keys['w'] || keys['ㅈ']) { myPlayer.y -= curSpeed; moved = true; }
+                if (keys['s'] || keys['ㄴ']) { myPlayer.y += curSpeed; moved = true; }
+                if (keys['a'] || keys['ㅁ']) { myPlayer.x -= curSpeed; moved = true; }
+                if (keys['d'] || keys['ㄹ']) { myPlayer.x += curSpeed; moved = true; }
+                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x));
+                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y));
+            }
+            
+            // 카메라 업데이트
+            cameraX = myPlayer.x - canvas.width / 2 + PLAYER_SIZE / 2;
+            cameraY = myPlayer.y - canvas.height / 2 + PLAYER_SIZE / 2;
+            
+            if (moved) {
+                playersRef.child(myPlayerId).update({
+                    x: myPlayer.x,
+                    y: myPlayer.y,
+                    timestamp: Date.now()
+                });
+            }
+            
+            document.getElementById('myHealth').textContent = `${myPlayer.health}/${myPlayer.maxHealth}`;
+            
+            // 어쌔신 은신 만료 체크
+            if (myClass === 'assassin' && assassinStealthActive && Date.now() > assassinStealthEnd) {
+                assassinStealthActive = false;
+                playersRef.child(myPlayerId).update({ stealthed: false });
+            }
+
+            updateSkill();
+            updateWarriorSwing();
+            updateAssassinStab();
+            updateSmokeParticles();
+            updateSmithHammer();
+            updateSamurai();
+            updateBullets();
+            updateParticles();
+            updateHitEffects();
+            updateCooldownHUD();
+        }
+
+        function render() {
+            // 배경
+            ctx.fillStyle = '#0f3460';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 맵 좌표
+            const mapScreenX = -cameraX;
+            const mapScreenY = -cameraY;
+
+            // 그리드 (카메라 오프셋 적용)
+            ctx.strokeStyle = 'rgba(0, 255, 245, 0.1)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            const startX = Math.floor(cameraX / gridSize) * gridSize;
+            const startY = Math.floor(cameraY / gridSize) * gridSize;
+            for (let x = startX; x < cameraX + canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x - cameraX, 0);
+                ctx.lineTo(x - cameraX, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = startY; y < cameraY + canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y - cameraY);
+                ctx.lineTo(canvas.width, y - cameraY);
+                ctx.stroke();
+            }
+
+            // 맵 경계선
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 100, 100, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(mapScreenX, mapScreenY, MAP_W, MAP_H);
+            // 맵 밖 오버레이
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            if (mapScreenY > 0) ctx.fillRect(0, 0, canvas.width, mapScreenY);
+            if (mapScreenY + MAP_H < canvas.height) ctx.fillRect(0, mapScreenY + MAP_H, canvas.width, canvas.height - mapScreenY - MAP_H);
+            if (mapScreenX > 0) ctx.fillRect(0, mapScreenY, mapScreenX, MAP_H);
+            if (mapScreenX + MAP_W < canvas.width) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, canvas.width - mapScreenX - MAP_W, MAP_H);
+            ctx.restore();
+            
+            // 모든 플레이어 그리기
+            for (let id in players) {
+                const player = players[id];
+                const isMe = id === myPlayerId;
+
+                // 관전자는 그리지 않음
+                if (player.isSpectator) continue;
+                // 사망한 플레이어도 그리지 않음
+                if (player.health <= 0) continue;
+                // 어쌔신 은신: 내가 아닌 플레이어에게 보이지 않음
+                if (!isMe && player.stealthed) continue;
+                
+                const screenX = player.x - cameraX;
+                const screenY = player.y - cameraY;
+                
+                if (screenX < -PLAYER_SIZE || screenX > canvas.width || 
+                    screenY < -PLAYER_SIZE || screenY > canvas.height) {
+                    continue;
+                }
+                
+                // 관전 대상 강조 (노란 원)
+                if (id === spectateTargetId) {
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // 어쌔신 은신 시 반투명 처리 (자신에게만)
+                const stealthAlpha = (isMe && player.stealthed) ? 0.35 : 1.0;
+                ctx.save();
+                ctx.globalAlpha = stealthAlpha;
+
+                // 체력바 (개선)
+                const hpBarW = PLAYER_SIZE + 20;
+                const hpBarH = 8;
+                const hpBarX = screenX + PLAYER_SIZE / 2 - hpBarW / 2;
+                const hpBarY = screenY - 22;
+                const healthPercent = Math.max(0, player.health / player.maxHealth);
+
+                // 그림자
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(hpBarX - 1, hpBarY - 1, hpBarW + 2, hpBarH + 2);
+                // 배경
+                ctx.fillStyle = '#1a0000';
+                ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
+                // 체력 색상 그라데이션
+                const hpGrad = ctx.createLinearGradient(hpBarX, hpBarY, hpBarX + hpBarW * healthPercent, hpBarY);
+                if (healthPercent > 0.5) {
+                    hpGrad.addColorStop(0, '#00e676');
+                    hpGrad.addColorStop(1, '#69f0ae');
+                } else if (healthPercent > 0.25) {
+                    hpGrad.addColorStop(0, '#ff9800');
+                    hpGrad.addColorStop(1, '#ffcc02');
+                } else {
+                    hpGrad.addColorStop(0, '#e53935');
+                    hpGrad.addColorStop(1, '#ff5252');
+                }
+                ctx.fillStyle = hpGrad;
+                ctx.fillRect(hpBarX, hpBarY, hpBarW * healthPercent, hpBarH);
+                // 테두리
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
+
+                // ── 사무라이 차징 게이지 (체력바 바로 위, 닉네임 아래) ──
+                if (player.class === 'samurai' && player.samuraiCharging && player.samuraiChargeStart) {
+                    const now2 = Date.now();
+                    const chargedMs2 = Math.min(now2 - player.samuraiChargeStart, SAMURAI_MAX_CHARGE);
+                    const chargeRatio2 = chargedMs2 / SAMURAI_MAX_CHARGE;
+                    const cgW = hpBarW;
+                    const cgH = 4;
+                    const cgX = hpBarX;
+                    const cgY = hpBarY - cgH - 3;
+                    // 배경
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(cgX - 1, cgY - 1, cgW + 2, cgH + 2);
+                    // 게이지 (파→주황→붉)
+                    const r = Math.round(80 + 175 * chargeRatio2);
+                    const g = Math.round(200 - 150 * chargeRatio2);
+                    const b = Math.round(255 - 220 * chargeRatio2);
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.shadowColor = `rgb(${r},${g},${b})`;
+                    ctx.shadowBlur = 6;
+                    ctx.fillRect(cgX, cgY, cgW * Math.max(0, Math.min(1, chargeRatio2)), cgH);
+                    ctx.shadowBlur = 0;
+                }
+
+                
+                // 플레이어 원
+                ctx.fillStyle = player.color;
+                ctx.beginPath();
+                ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 테두리
+                ctx.strokeStyle = isMe ? '#FFD700' : '#fff';
+                ctx.lineWidth = isMe ? 4 : 2;
+                ctx.stroke();
+                
+                // 닉네임 (체력바보다 더 위)
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Malgun Gothic';
+                ctx.textAlign = 'center';
+                ctx.fillText(player.nickname, screenX + PLAYER_SIZE / 2, screenY - 34);
+
+                // 대장장이 강화 레벨 표시 (닉네임 위)
+                if (player.class === 'blacksmith' && player.smithEnhanceLevel > 0) {
+                    ctx.save();
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = `bold 12px Malgun Gothic`;
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = '#ff8c00';
+                    ctx.shadowBlur = 8;
+                    ctx.fillText(`⚒ +${player.smithEnhanceLevel}강`, screenX + PLAYER_SIZE / 2, screenY - 50);
+                    ctx.restore();
+                }
+
+                // 사무라이 패링 오라
+                if (player.samuraiParrying) {
+                    ctx.save();
+                    const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 60);
+                    ctx.globalAlpha = pulse;
+                    ctx.strokeStyle = '#00cfff';
+                    ctx.lineWidth = 5;
+                    ctx.shadowColor = '#00cfff';
+                    ctx.shadowBlur = 22;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 9, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                    // 패링 텍스트 (대장장이 강화와 같은 위치)
+                    ctx.save();
+                    ctx.fillStyle = '#00cfff';
+                    ctx.font = 'bold 13px Malgun Gothic';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = '#00cfff';
+                    ctx.shadowBlur = 8;
+                    ctx.fillText('⚔ 패링', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
+                    ctx.restore();
+                }
+                
+                // 워리어 스킬 오라 (Firebase warriorSkillActive 기반 → 모든 플레이어에 보임)
+                if (player.warriorSkillActive) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.3 + 0.1 * Math.sin(Date.now() / 120);
+                    ctx.strokeStyle = '#ff4444';
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 16;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 6, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 대장장이 강화 경직 오라
+                if (player.smithForging) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Date.now() / 80);
+                    ctx.strokeStyle = '#ffd700';
+                    ctx.lineWidth = 5;
+                    ctx.shadowColor = '#ff8c00';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                    // 경직 텍스트
+                    ctx.save();
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = 'bold 13px Malgun Gothic';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = '#ff8c00';
+                    ctx.shadowBlur = 8;
+                    ctx.fillText('⚒ 강화 중...', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
+                    ctx.restore();
+                }
+
+                // 본인 표시
+                if (isMe) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 12px Malgun Gothic';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('YOU', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 20);
+                }
+
+                // 어쌔신 은신 복원
+                ctx.restore();
+            }
+
+            // ── 어쌔신 찌르기 (모든 플레이어 playerStabs 기반) ──
+            for (const id in playerStabs) {
+                const stab = playerStabs[id];
+                const owner = players[id];
+                // 은신 중인 상대방 찌르기는 숨김 (단, 자신과 관전자는 표시)
+                if (owner && !owner.isMe && owner.stealthed && id !== myPlayerId) continue;
+                const progress = 1 - stab.frames / stab.totalFrames;
+                const stabLen = ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
+                // 내 찌르기는 실시간 위치 사용, 다른 플레이어는 Firebase 전송 위치 사용
+                let scx, scy;
+                if (id === myPlayerId && players[myPlayerId]) {
+                    scx = players[myPlayerId].x + PLAYER_SIZE / 2 - cameraX;
+                    scy = players[myPlayerId].y + PLAYER_SIZE / 2 - cameraY;
+                } else {
+                    scx = stab.x - cameraX;
+                    scy = stab.y - cameraY;
+                }
+                ctx.save();
+                ctx.strokeStyle = '#cc99ff';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#9b59b6';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.moveTo(scx, scy);
+                ctx.lineTo(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen);
+                ctx.stroke();
+                // 단검 끝 점
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#cc99ff';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // ── 어쌔신 연기 파티클 ──
+            for (const p of assassinSmokeParticles) {
+                const sx = p.x - cameraX;
+                const sy = p.y - cameraY;
+                if (sx < -80 || sx > canvas.width + 80 || sy < -80 || sy > canvas.height + 80) continue;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.life * 0.55);
+                ctx.fillStyle = '#aaaacc';
+                ctx.beginPath();
+                ctx.arc(sx, sy, Math.max(0.1, p.radius * p.life), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // ── 워리어 검 휘두르기 (모든 플레이어 playerSwings 기반) ──
+            for (const id in playerSwings) {
+                const sw = playerSwings[id];
+                const owner = players[id];
+                if (!owner || owner.isSpectator || owner.health <= 0) continue;
+                const sx = owner.x - cameraX + PLAYER_SIZE / 2;
+                const sy = owner.y - cameraY + PLAYER_SIZE / 2;
+                const isSpinAtk = (sw.arc >= Math.PI * 1.9);
+                const halfArc = sw.arc / 2;
+                const progress = 1 - sw.frames / sw.totalFrames;
+
+                ctx.save();
+                ctx.globalAlpha = 0.88;
+                ctx.strokeStyle = isSpinAtk ? '#ff6666' : '#e0e0ff';
+                ctx.lineWidth = isSpinAtk ? 4 : 3;
+                ctx.shadowColor = isSpinAtk ? '#ff2222' : '#aaaaff';
+                ctx.shadowBlur = 14;
+
+                // 검 호 (지나온 궤적)
+                ctx.beginPath();
+                ctx.arc(sx, sy, sw.range, sw.dir - halfArc, sw.dir - halfArc + sw.arc * progress);
+                ctx.stroke();
+
+                // 검날 (현재 위치)
+                ctx.lineWidth = isSpinAtk ? 5 : 3;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(sx + Math.cos(sw.angle) * sw.range, sy + Math.sin(sw.angle) * sw.range);
+                ctx.stroke();
+                ctx.restore();
+            }
+            
+            // ── 대장장이 망치 공격 (모든 플레이어 playerHammers 기반) ──
+            for (const id in playerHammers) {
+                const h = playerHammers[id];
+                const owner = players[id];
+                if (!owner || owner.isSpectator || owner.health <= 0) continue;
+                // 내 플레이어든 상대방이든 항상 실시간 owner 위치 기준으로 렌더링
+                const cx = owner.x + PLAYER_SIZE / 2 - cameraX;
+                const cy = owner.y + PLAYER_SIZE / 2 - cameraY;
+
+                const elapsed = h.totalFrames - h.frames;
+                const progress = elapsed / h.totalFrames;
+                const alpha = Math.max(0, 1 - progress * 1.2);
+                const sqSize = SMITH_HAMMER_RANGE * 2;
+                const offsetFront = PLAYER_SIZE / 2 + 4;
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(h.dir);
+                ctx.globalAlpha = alpha;
+
+                ctx.fillStyle = 'rgba(230, 126, 34, 0.55)';
+                ctx.shadowColor = '#ff8c00';
+                ctx.shadowBlur = 20;
+                ctx.fillRect(offsetFront, -sqSize / 2, sqSize, sqSize);
+
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 14;
+                ctx.strokeRect(offsetFront, -sqSize / 2, sqSize, sqSize);
+
+                ctx.restore();
+            }
+
+            // ── 사무라이 찌르기 / 반격 이펙트 ──
+            for (const key in playerSamuraiSlashes) {
+                const s = playerSamuraiSlashes[key];
+                const owner = players[s.ownerId];
+                if (!owner || owner.isSpectator || owner.health <= 0) continue;
+                const sx = owner.x + PLAYER_SIZE / 2 - cameraX;
+                const sy = owner.y + PLAYER_SIZE / 2 - cameraY;
+                const progress = s.progress !== undefined ? s.progress : (1 - s.frames / (s.totalFrames || SAMURAI_SLASH_TOTAL));
+
+                ctx.save();
+
+                if (s.type === 'counter') {
+                    // 반격 돌진 — 강렬한 붉은 잔상
+                    ctx.globalAlpha = Math.max(0, 0.75 - progress * 0.8);
+                    ctx.strokeStyle = '#ff2244';
+                    ctx.lineWidth = 6;
+                    ctx.shadowColor = '#ff0033';
+                    ctx.shadowBlur = 22;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(sx + Math.cos(s.dir + Math.PI) * 55, sy + Math.sin(s.dir + Math.PI) * 55);
+                    ctx.stroke();
+                    // 앞쪽 충격 원
+                    ctx.globalAlpha = Math.max(0, 0.6 - progress * 0.7);
+                    ctx.strokeStyle = '#ffaaaa';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 14;
+                    ctx.beginPath();
+                    ctx.arc(sx + Math.cos(s.dir) * 18, sy + Math.sin(s.dir) * 18, 18, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // 찌르기 — 사각형 궤적 (차징 레벨별 크기)
+                    const tLen = (s.thrustLength || 155) * progress;
+                    const tW   = s.thrustWidth  || 28;
+                    ctx.globalAlpha = 0.45;
+                    ctx.fillStyle = '#aaddff';
+                    ctx.shadowColor = '#6699ff';
+                    ctx.shadowBlur = 12;
+                    ctx.save();
+                    ctx.translate(sx, sy);
+                    ctx.rotate(s.dir);
+                    ctx.fillRect(-PLAYER_SIZE, -tW / 2, tLen + PLAYER_SIZE, tW);
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+
+            // 파티클 (대쉬 먼지/잔상) 그리기
+            for (const p of particles) {
+                const sx = p.x - cameraX;
+                const sy = p.y - cameraY;
+                // 화면 밖 스킵
+                if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.life * 0.75);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(sx, sy, Math.max(0.1, p.radius * p.life), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 히트 이펙트 그리기
+            for (const e of hitEffects) {
+                const sx = e.x - cameraX;
+                const sy = e.y - cameraY;
+                // 화면 밖 스킵
+                if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, e.life * 0.9);
+                ctx.fillStyle = e.color;
+                ctx.shadowColor = e.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(sx, sy, Math.max(0.1, e.radius * e.life), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 화면 플래시 (피격 시)
+            if (screenFlashColor && Date.now() < screenFlashEnd) {
+                const prog = (screenFlashEnd - Date.now()) / (screenFlashEnd - Date.now() + 50);
+                ctx.fillStyle = screenFlashColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                screenFlashColor = null;
+            }
+
+            // 총알 그리기
+            for (let bullet of bullets) {
+                const screenX = bullet.x - cameraX;
+                const screenY = bullet.y - cameraY;
+                
+                if (screenX < -20 || screenX > canvas.width + 20 || 
+                    screenY < -20 || screenY > canvas.height + 20) {
+                    continue;
+                }
+                
+                ctx.fillStyle = bullet.isSkillBullet ? '#ff0000' : '#ffff00';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, bullet.isSkillBullet ? 6 : 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = bullet.isSkillBullet ? '#ff6666' : '#ffff99';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // 마우스 커서 위치에 조준선 그리기
+            if (myPlayerId && players[myPlayerId] && !isSpectating && isAlive) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(mouseX - 10, mouseY);
+                ctx.lineTo(mouseX + 10, mouseY);
+                ctx.moveTo(mouseX, mouseY - 10);
+                ctx.lineTo(mouseX, mouseY + 10);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 관전 UI
+            if (isSpectating || !isAlive) {
+                // 반투명 상단 배너
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(0, 0, canvas.width, 50);
+
+                ctx.fillStyle = '#00fff5';
+                ctx.font = 'bold 18px Malgun Gothic';
+                ctx.textAlign = 'center';
+
+                if (spectateTargetId && players[spectateTargetId]) {
+                    const targetName = players[spectateTargetId].nickname;
+                    ctx.fillText(`👁 관전 중: ${targetName}`, canvas.width / 2, 32);
+                } else {
+                    ctx.fillStyle = '#aaa';
+                    ctx.fillText('👁 관전 중 — 살아있는 플레이어 없음', canvas.width / 2, 32);
+                }
+            }
+
+            // R키 강제 종료 진행 바
+            if (rKeyHolding && forceStopProgress > 0) {
+                const barWidth = 300;
+                const barHeight = 24;
+                const barX = canvas.width / 2 - barWidth / 2;
+                const barY = canvas.height - 60;
+
+                // 배경
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(barX - 5, barY - 5, barWidth + 10, barHeight + 10);
+
+                // 진행 바
+                ctx.fillStyle = '#ff4444';
+                ctx.fillRect(barX, barY, barWidth * (forceStopProgress / 100), barHeight);
+
+                // 테두리
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                // 텍스트
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Malgun Gothic';
+                ctx.textAlign = 'center';
+                ctx.fillText(`⚠ 게임 강제 종료 중... ${Math.ceil(3 - (forceStopProgress / 100) * 3)}초`, canvas.width / 2, barY + 17);
+            }
+        }
+
+        function updatePlayerList() {
+            const playerCount = Object.keys(players).length;
+            document.getElementById('playerCount').textContent = playerCount;
+            
+            const listContent = document.getElementById('playerListContent');
+            listContent.innerHTML = '';
+            
+            for (let id in players) {
+                const player = players[id];
+                const isMe = id === myPlayerId;
+                
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                item.innerHTML = `
+                    <div class="player-color" style="background: ${player.color}"></div>
+                    <div>
+                        <div><strong>${player.nickname}</strong> ${isMe ? '(나)' : ''}</div>
+                        <div style="font-size: 12px; color: #aaa;">${player.className}</div>
+                    </div>
+                `;
+                listContent.appendChild(item);
+            }
+        }
+    </script>
+</body>
+</html>
