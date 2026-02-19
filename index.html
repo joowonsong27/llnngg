@@ -2253,7 +2253,17 @@
                 const data = snapshot.val();
                 if (!data) return;
 
-                if (data.health <= 0 && isAlive) {
+                // ★ 모래시계 무적: 본인이 hourglassActive 중이면 HP 변화 무효
+            if (hourglassActive && data.health < (players[myPlayerId] ? players[myPlayerId].maxHealth || CLASSES[myClass].stats.health : 999)) {
+                // 피해를 받았으면 즉시 복구
+                const maxHp = players[myPlayerId] ? (players[myPlayerId].maxHealth || CLASSES[myClass].stats.health) : CLASSES[myClass].stats.health;
+                if (data.health < maxHp) {
+                    // 모래시계 중 피해 무효 — HP 원상복구
+                    playersRef.child(myPlayerId).update({ health: maxHp });
+                    return;
+                }
+            }
+            if (data.health <= 0 && isAlive) {
                     isAlive = false;
                     cancelSamuraiCharge(); // 사무라이 차징 취소
 
@@ -2561,7 +2571,10 @@
         }
 
         // ========== 승리 화면 ==========
+        let victoryShown = false; // 중복 호출 방지
         function showVictoryScreen(winnerName) {
+            if (victoryShown) return;
+            victoryShown = true;
             // 대장장이 강화 초기화 (게임 종료 시)
             smithEnhanceLevel = 0;
             smithForging = false;
@@ -2622,16 +2635,15 @@
                 goToRoomList();
             }, 5000);
 
+            let roomListGoing = false; // 재진입 방지
             function goToRoomList() {
-                // ★ 리스너 먼저 해제 (location.reload 트리거 방지)
-                playersRef && playersRef.off();
-                gameStateRef && gameStateRef.off();
-                bulletsRef && bulletsRef.off();
+                if (roomListGoing) return;
+                roomListGoing = true;
 
-                // 내 플레이어 데이터 삭제 (방은 남겨둬서 남은 사람들 자동 이동 가능)
-                if (myPlayerId && playersRef) {
-                    playersRef.child(myPlayerId).remove();
-                }
+                // ★ 리스너 먼저 전부 해제 (location.reload 트리거 방지)
+                try { playersRef && playersRef.off(); } catch(e) {}
+                try { gameStateRef && gameStateRef.off(); } catch(e) {}
+                try { bulletsRef && bulletsRef.off(); } catch(e) {}
 
                 // 키/마우스 이벤트 해제
                 document.removeEventListener('keydown', handleKeyDown);
@@ -2640,6 +2652,13 @@
                 canvas.removeEventListener('mousedown', handleMouseDown);
                 canvas.removeEventListener('mouseup', handleMouseUp);
                 canvas.removeEventListener('contextmenu', handleRightClick);
+
+                // 내 플레이어 데이터 삭제 (리스너 off 이후에 삭제해야 reload 안 됨)
+                const _pid = myPlayerId;
+                const _ref = playersRef;
+                if (_pid && _ref) {
+                    try { _ref.child(_pid).remove(); } catch(e) {}
+                }
 
                 // 상태 초기화 (닉네임·직업·스펠 유지)
                 const savedClass = myClass;
@@ -2651,6 +2670,7 @@
                 isSpectating = false;
                 isAlive = true;
                 gameStatus = GAME_STATUS.LOBBY;
+                victoryShown = false;
                 lobbyClassIndex = 0;
                 myClass = savedClass;
                 mySpell = savedSpell;
@@ -2662,7 +2682,7 @@
                 isDashing = false; dashRemainFrames = 0;
 
                 // 오버레이 제거
-                overlay.remove();
+                try { overlay.remove(); } catch(e) {}
 
                 // 게임 HUD 숨기기
                 document.getElementById('info').style.display = 'none';
@@ -3317,11 +3337,11 @@
             playersRef.child(myPlayerId).update({ fluidActive: true });
         }
 
-        // ── 모래시계 캐스팅 ──
+        // ── 모래시계 캐스팅 ── (로컬만 처리 — Firebase 전파 시 다른 클라이언트 영향 없게)
         function _castHourglass(now) {
             hourglassActive = true;
             hourglassEnd = now + 3000;
-            playersRef.child(myPlayerId).update({ hourglassActive: true });
+            // hourglassActive는 로컬 상태만 사용. Firebase에 올리지 않음.
         }
 
         // ========== 스펠 업데이트 (게임 루프에서 매 프레임 호출) ==========
@@ -3370,10 +3390,10 @@
                 }
             }
 
-            // ── 모래시계 ──
+            // ── 모래시계 ── (로컬만 처리)
             if (hourglassActive && now > hourglassEnd) {
                 hourglassActive = false;
-                playersRef.child(myPlayerId).update({ hourglassActive: false });
+                // Firebase 업데이트 없음 — 로컬 상태만 해제
             }
         }
 
@@ -4767,8 +4787,8 @@
 
                 // ── 스펠 이펙트 시각화 ──
                 const spellSrc = isMe ? { spell: mySpell } : (player.spell ? { spell: player.spell } : null);
-                // 모래시계 (황금 껍데기) — 본인은 hourglassActive, 상대방은 player.hourglassActive
-                const showHourglass = isMe ? hourglassActive : player.hourglassActive;
+                // 모래시계 (황금 껍데기) — 본인만 로컬 hourglassActive 표시 (다른 플레이어엔 미표시)
+                const showHourglass = isMe ? hourglassActive : false;
                 if (showHourglass) {
                     ctx.save();
                     const hgPulse = 0.6 + 0.4 * Math.sin(Date.now() / 120);
