@@ -999,7 +999,7 @@
                 id: 'rage',
                 name: '분노',
                 icon: '🔥',
-                description: '4초간 전투력 강화. <span class="tt-buff">▲ 공속 +1</span> <span class="tt-buff">▲ 공격력 +10</span>',
+                description: '4초간 전투력 강화. <span class="tt-buff">▲ 공격속도 +1</span> <span class="tt-buff">▲ 공격력 +10</span>',
                 cooldown: 10,
                 color: '#ff4400'
             },
@@ -1007,7 +1007,7 @@
                 id: 'fluid',
                 name: '유체화',
                 icon: '🌊',
-                description: '이속 급증 후 감속. <span class="tt-buff">▲ 이속 최대 +1.5</span> → 2초 유지 → 감소',
+                description: '이동속도 급증 후 감속. <span class="tt-buff">▲ 이동속도 최대 +1.5</span> → 2초 유지 → 감소',
                 cooldown: 8,
                 color: '#44aaff'
             },
@@ -1031,15 +1031,15 @@
                 stats: { moveSpeed: 5, attack: 20, attackSpeed: 1.125, health: 100 },
                 color: '#4ECDC4',
                 bulletSpeed: 22.5,
-                skill: { name: '연사', cooldown: 10, bullets: 10, bulletSpeed: 22.5, bulletInterval: 100 },
+                skill: { name: '연사', cooldown: 10, bullets: 15, bulletSpeed: 22.5, bulletInterval: 100 },
                 // 데미지 계수 (공격력 기준 %)
                 dmgCoeff: {
-                    basic:    { pct: 100, label: '기본 공격' },
-                    skill:    { pct: 100, label: '연사 (탄당)' }
+                    basic:    { pct: 100, label: '기본 공격 (2발)',  section: 'basic' },
+                    skill:    { pct:  75, label: '연사 (탄당)',      section: 'skill' }
                 },
                 tooltip: {
-                    basic:  '총알 1발 발사. <span class="tt-dmg">⚔ 공격력 100%</span>',
-                    skill:  '고정된 방향으로 총알 10발 연속 발사. <span class="tt-dmg">⚔ 탄당 100%</span>',
+                    basic:  '마우스 방향으로 총알 2발을 빠르게 연속 발사. <span class="tt-dmg">⚔ 공격력 100%</span> (탄당)',
+                    skill:  '고정된 방향으로 총알 15발 연속 발사. <span class="tt-dmg">⚔ 공격력 75%</span> (탄당)',
                     skillName: '연사', skillCd: 10
                 }
             },
@@ -1052,12 +1052,12 @@
                 color: '#e74c3c',
                 skill: { name: '전투 태세', cooldown: 15 },
                 dmgCoeff: {
-                    basic:    { pct: 100, label: '검 휘두르기' },
-                    spin:     { pct: 100, label: '회전 베기' }
+                    basic:    { pct: 100, label: '검 휘두르기', section: 'basic' },
+                    spin:     { pct: 100, label: '회전 베기',   section: 'skill' }
                 },
                 tooltip: {
                     basic:  '앞 <span class="tt-neut">↔ 180°</span> 범위를 검으로 휘두름. <span class="tt-dmg">⚔ 공격력 100%</span>',
-                    skill:  '<span class="tt-buff">▲ 이속 +25%</span> <span class="tt-buff">🛡 피해 감소 50%</span> 3초 지속. 다음 공격이 <span class="tt-neut">↺ 360° 회전 베기</span>로 변환. <span class="tt-dmg">⚔ 동일 피해</span>',
+                    skill:  '<span class="tt-buff">▲ 이동속도 +1.5</span> <span class="tt-buff">🛡 피해 감소 50%</span> 3초 지속. 다음 공격이 <span class="tt-neut">↺ 360° 회전 베기</span>로 변환.<br>회전 베기로 적을 맞추면 <span class="tt-buff">버프 3초 리셋 + 회전베기 유지</span>. (적을 못 맞추면 버프 소멸)',
                     skillName: '전투 태세', skillCd: 15
                 }
             },
@@ -1073,8 +1073,8 @@
                     basic: { pct: 100, label: '단검 찌르기' }
                 },
                 tooltip: {
-                    basic:  '마우스 방향으로 단검을 찌름. <span class="tt-dmg">⚔ 공격력 100%</span>. 은신 중 공격 시 즉시 은신 해제.',
-                    skill:  '3초간 은신 진입. <span class="tt-buff">▲ 이속 ×2</span> <span class="tt-buff">👁 적에게 비가시</span>. 공격 또는 대쉬 시 자동 해제.',
+                    basic:  '마우스 방향으로 단검을 찌름. <span class="tt-dmg">⚔ 공격력 100%</span>',
+                    skill:  '3초간 은신 진입. <span class="tt-buff">▲ 이동속도 +100%</span> <span class="tt-buff">👁 적에게 비가시</span>. 공격 또는 대쉬 시 자동 해제. 은신 중 공격은 즉시 해제.',
                     skillName: '은신', skillCd: 8
                 }
             },
@@ -1091,7 +1091,7 @@
                 },
                 tooltip: {
                     basic:  '망치로 앞을 가격. <span class="tt-dmg">⚔ 공격력 100%</span>. 강화 횟수에 따라 공격력 점점 증가.',
-                    skill:  '2초 경직 후 능력치 영구 강화.<br><span class="tt-buff">▲ 이속 +0.5</span> <span class="tt-buff">▲ 공격력 +5</span> <span class="tt-buff">▲ 공속 +0.25</span> <span class="tt-buff">▲ 체력 +20</span>. 무한 중첩.',
+                    skill:  '2초 경직 후 능력치 영구 강화.<br><span class="tt-buff">▲ 이동속도 +0.25</span> <span class="tt-buff">▲ 공격력 +5</span> <span class="tt-buff">▲ 공격속도 +0.25</span> <span class="tt-buff">▲ 체력 +10</span>. 무한 중첩.',
                     skillName: '강화', skillCd: 4
                 }
             },
@@ -1104,13 +1104,13 @@
                 color: '#c0392b',
                 skill: { name: '패링', cooldown: 8 },
                 dmgCoeff: {
-                    thrust_min: { pct:  25, label: '차징 베기 (최소)' },
-                    thrust_max: { pct: 175, label: '차징 베기 (최대)' },
-                    counter:    { pct: 250, label: '패링 반격' }
+                    thrust_min: { pct:  25, label: '차징 베기 (최소)', section: 'basic' },
+                    thrust_max: { pct: 175, label: '차징 베기 (최대)', section: 'basic' },
+                    counter:    { pct: 250, label: '패링 반격',        section: 'skill' }
                 },
                 tooltip: {
-                    basic:  '마우스 누르는 시간으로 차징. <span class="tt-dmg">⚔ 5~35 고정</span>. 차징이 길수록 <span class="tt-buff">▲ 돌진 거리·범위 증가</span>.',
-                    skill:  '1초간 패링 자세. 피격 시 <span class="tt-buff">🛡 피해 무효화</span> 후 <span class="tt-dmg">⚔ 50 고정 반격 돌진</span> 발동.',
+                    basic:  '마우스 누르는 시간으로 차징. <span class="tt-dmg">⚔ 공격력 25%~175%</span>. 차징이 길수록 <span class="tt-buff">▲ 돌진 거리·범위 증가</span>.',
+                    skill:  '1초간 패링 자세. 피격 시 <span class="tt-buff">🛡 피해 무효화</span> 후 <span class="tt-dmg">⚔ 공격력 250% 반격 돌진</span> 발동. 돌진 종료 시 <span class="tt-neut">↔ 주변 범위 추가 타격</span>.',
                     skillName: '패링', skillCd: 8
                 }
             },
@@ -1127,8 +1127,8 @@
                     basic: { pct: 100, label: '화살' }
                 },
                 tooltip: {
-                    basic:  '맵 끝까지 날아가는 화살 1발. <span class="tt-dmg">⚔ 공격력 100% (기본 50)</span>. <span class="tt-neut">∞ 사거리 무제한</span>.',
-                    skill:  '4초간 <span class="tt-buff">▲ 시야 ×1.875 확대</span>. 먼 적을 더 넓게 관측 가능. 피해 변화 없음.',
+                    basic:  '맵 끝까지 날아가는 화살 1발. <span class="tt-dmg">⚔ 공격력 100%</span>. <span class="tt-neut">사거리 무제한</span>',
+                    skill:  '4초간 <span class="tt-buff">▲ 시야 범위 +87.5%</span>. 피해 변화 없음.',
                     skillName: '호크아이', skillCd: 8
                 }
             },
@@ -1137,16 +1137,16 @@
                 name: '무희',
                 icon: '🌸',
                 description: '화려한 몸짓으로 벚꽃 비수를 퍼붓고 춤사위로 적의 발목을 잡는 속사 카이터',
-                stats: { moveSpeed: 5.5, attack: 10, attackSpeed: 2.5, health: 60 },
+                stats: { moveSpeed: 5.5, attack: 5, attackSpeed: 2.5, health: 60 },
                 color: '#e91e8c',
                 skill: { name: '꽃보라 춤', cooldown: 15 },
                 dmgCoeff: {
-                    basic:    { pct: 100, label: '벚꽃 비수 (탄당)' },
-                    zone_dps: { pct:   0, label: '장판 (초당 고정)' }   // 고정 10
+                    basic:    { pct: 100, label: '벚꽃 비수 (탄당)', section: 'basic' },
+                    zone_dps: { pct:   0, label: '장판 (초당 고정)', section: 'skill' }   // 고정 10
                 },
                 tooltip: {
-                    basic:  '부채꼴 <span class="tt-neut">60°</span> 방향으로 비수 6발 동시 발사. <span class="tt-dmg">⚔ 탄당 100% (기본 10)</span>.',
-                    skill:  '발아래 반경 208px 장판 <span class="tt-neut">5초</span> 설치. 장판 위 적에게 <span class="tt-dmg">⚔ 초당 10 고정 피해</span>. 장판은 이동.',
+                    basic:  '부채꼴 <span class="tt-neut">60°</span> 방향으로 비수 7발 동시 발사. <span class="tt-dmg">⚔ 공격력 100%</span> (탄당)',
+                    skill:  '무희를 중심으로 주변 영역이 <span class="tt-neut">5초간 장판 구역</span>으로 변환. 구역 안 적에게 <span class="tt-dmg">⚔ 초당 10 고정 피해</span>. 무희가 이동하면 구역도 함께 이동.',
                     skillName: '꽃보라 춤', skillCd: 15
                 }
             }
@@ -1210,14 +1210,23 @@
         let muhuiZoneActive = false;
         let muhuiZoneEnd = 0;
         const MUHUI_ZONE_DURATION = 5000;       // 장판 지속 (ms)
-        const MUHUI_ZONE_RADIUS = 208;          // 장판 반경 (기존 160의 130%)
+        const MUHUI_ZONE_RADIUS = 280;          // 장판 반경 (확장)
         const MUHUI_ZONE_DPS = 10;              // 초당 피해
         const MUHUI_PETAL_RANGE = 440;          // 벚꽃비수 최대 사거리 (2배)
-        const MUHUI_PETAL_COUNT = 6;            // 발사 수
-        const MUHUI_PETAL_SPREAD = Math.PI / 3; // 부채꼴 각도 (60도)
+        const MUHUI_PETAL_COUNT = 7;            // 발사 수
+        const MUHUI_PETAL_SPREAD = Math.PI / 4.5; // 부채꼴 각도 (40도)
         const MUHUI_PETAL_SPEED = 14;
         let muhuiZoneDmgTimer = 0;              // 장판 틱 카운터
         const playerMuhuiZones = {};            // 다른 플레이어 장판 상태
+
+        // ========== 자기장 (배틀그라운드식) ==========
+        const ZONE_DELAY      = 5000;   // 게임 시작 후 자기장 시작까지 대기 (5초)
+        const ZONE_SHRINK_DUR = 45000;  // 완전히 닫히는 데 걸리는 시간 (45초)
+        const ZONE_DPS        = 5;      // 자기장 밖 초당 피해
+        const ZONE_MAX_R      = Math.sqrt(2) * 1000; // 초기 반경 (맵 모서리 포함)
+        const ZONE_MIN_R      = 300;    // 최소 반경 (플레이어 화면 하나 크기, 최후 결투장)
+        let zoneGameStartTime = 0;      // 게임 시작 시각 (자기장 계산용)
+        let zoneDmgAccum      = 0;      // 자기장 피해 누적 (ms)
 
         // 사무라이 전용 상태
         const SAMURAI_SLASH_TOTAL = 10;       // 찌르기 애니메이션 총 프레임
@@ -1257,7 +1266,7 @@
         let samuraiCounterVy = 0;
         const SAMURAI_COUNTER_FRAMES = 14;    // 반격 돌진 지속 프레임
         const SAMURAI_COUNTER_SPEED = 20;     // 반격 돌진 속도
-        const SAMURAI_COUNTER_DMG = 50;       // 반격 피해
+        const SAMURAI_COUNTER_DMG_PCT = 2.5;  // 반격 피해 = 공격력 × 250%
         const samuraiCounterHitIds = new Set();
 
         const playerSamuraiSlashes = {};      // 다른 플레이어 베기 상태
@@ -1397,6 +1406,7 @@
         // 마우스 위치
         let mouseX = 0;
         let mouseY = 0;
+        let _lastPosWrite = 0; // Firebase 위치 업데이트 쓰로틀용
 
         // ========== 화면 전환 ==========
         function showScreen(screenId) {
@@ -1456,7 +1466,7 @@
                         <p class="description">${classData.description}</p>
                         <div class="stats">
                             <div>⚡ 이동속도: ${classData.stats.moveSpeed}</div>
-                            <div>⚔️ 공격력: ${classData.id === 'samurai' ? '5~35 (차징)' : classData.stats.attack}</div>
+                            <div>⚔️ 공격력: ${classData.id === 'samurai' ? '25%~175% (차징)' : classData.stats.attack}</div>
                             <div>⏱️ 공격속도: ${classData.stats.attackSpeed}/초</div>
                             <div>❤️ 체력: ${classData.stats.health}</div>
                         </div>
@@ -1511,11 +1521,11 @@
         }
 
         function prevSlide() {
-            if (currentClassIndex > 0) goToSlide(currentClassIndex - 1);
+            goToSlide(currentClassIndex > 0 ? currentClassIndex - 1 : classIds.length - 1);
         }
 
         function nextSlide() {
-            if (currentClassIndex < classIds.length - 1) goToSlide(currentClassIndex + 1);
+            goToSlide(currentClassIndex < classIds.length - 1 ? currentClassIndex + 1 : 0);
         }
 
         function selectClassByIndex(index) {
@@ -1543,11 +1553,14 @@
                 return `<div class="tooltip-coeff-row">${badge}<span class="tooltip-coeff-label">${coeff.label}</span></div>`;
             }
 
-            // 사무라이 전용: 계수 여러 개
-            let coeffHTML = '';
+            // section 플래그 기준으로 기본/스킬 계수 분리
+            let basicCoeffHTML = '';
+            let skillCoeffHTML = '';
             if (cd.dmgCoeff) {
                 Object.values(cd.dmgCoeff).forEach(c => {
-                    coeffHTML += coeffBadge(c);
+                    const badge = coeffBadge(c);
+                    if (!c.section || c.section === 'basic') basicCoeffHTML += badge;
+                    else skillCoeffHTML += badge;
                 });
             }
 
@@ -1564,7 +1577,7 @@
                 <div class="tooltip-stat-grid">
                     <div class="tooltip-stat-item">⚡ 이동속도 <span>${stats.moveSpeed}</span></div>
                     <div class="tooltip-stat-item">❤️ 체력 <span>${stats.health}</span></div>
-                    <div class="tooltip-stat-item">⚔️ 공격력 <span>${classId === 'samurai' ? '5~35' : stats.attack}</span></div>
+                    <div class="tooltip-stat-item">⚔️ 공격력 <span>${classId === 'samurai' ? '25%~175%' : stats.attack}</span></div>
                     <div class="tooltip-stat-item">⏱️ 공격속도 <span>${stats.attackSpeed}/초</span></div>
                 </div>
 
@@ -1574,7 +1587,7 @@
                         <span class="tooltip-skill-name">기본 공격</span>
                         <span class="tooltip-skill-cd" style="color:#00fff5;background:rgba(0,255,245,0.1);border-color:rgba(0,255,245,0.25);">⚡ ${stats.attackSpeed}/초</span>
                     </div>
-                    ${coeffHTML}
+                    ${basicCoeffHTML}
                     ${cd.tooltip ? cd.tooltip.basic : ''}
                 </div>
 
@@ -1584,6 +1597,7 @@
                         <span class="tooltip-skill-name">${cd.tooltip && cd.tooltip.skillName ? cd.tooltip.skillName : (cd.skill ? cd.skill.name : '')}</span>
                         <span class="tooltip-skill-cd">⏱ 쿨타임 ${cd.skill ? cd.skill.cooldown : '?'}초</span>
                     </div>
+                    ${skillCoeffHTML}
                     ${cd.tooltip ? cd.tooltip.skill : ''}
                 </div>
             `;
@@ -1625,17 +1639,17 @@
             sw.addEventListener('touchend', e => {
                 const dx = e.changedTouches[0].clientX - tsX;
                 if (Math.abs(dx) > 40) {
-                    if (dx < 0 && lobbyClassIndex < lobbyClassIds.length - 1) goToLobbySlide(lobbyClassIndex + 1);
-                    else if (dx > 0 && lobbyClassIndex > 0) goToLobbySlide(lobbyClassIndex - 1);
+                    if (dx < 0) goToLobbySlide(lobbyClassIndex < lobbyClassIds.length - 1 ? lobbyClassIndex + 1 : 0);
+                    else goToLobbySlide(lobbyClassIndex > 0 ? lobbyClassIndex - 1 : lobbyClassIds.length - 1);
                 }
             }, {passive:true});
 
             goToLobbySlide(lobbyClassIndex);
             document.getElementById('lobbySwiperPrev').onclick = () => {
-                if (lobbyClassIndex > 0) goToLobbySlide(lobbyClassIndex - 1);
+                goToLobbySlide(lobbyClassIndex > 0 ? lobbyClassIndex - 1 : lobbyClassIds.length - 1);
             };
             document.getElementById('lobbySwiperNext').onclick = () => {
-                if (lobbyClassIndex < lobbyClassIds.length - 1) goToLobbySlide(lobbyClassIndex + 1);
+                goToLobbySlide(lobbyClassIndex < lobbyClassIds.length - 1 ? lobbyClassIndex + 1 : 0);
             };
         }
 
@@ -1672,14 +1686,19 @@
                     : `<span class="tooltip-coeff-badge">${c.pct}%</span>`;
                 return `<div class="tooltip-coeff-row">${b}<span class="tooltip-coeff-label">${c.label}</span></div>`;
             }
-            let coeffHTML = '';
-            if (cd.dmgCoeff) Object.values(cd.dmgCoeff).forEach(c => { coeffHTML += coeffBadge(c); });
+            let basicCoeffHTML2 = '';
+            let skillCoeffHTML2 = '';
+            if (cd.dmgCoeff) Object.values(cd.dmgCoeff).forEach(c => {
+                const badge = coeffBadge(c);
+                if (!c.section || c.section === 'basic') basicCoeffHTML2 += badge;
+                else skillCoeffHTML2 += badge;
+            });
 
             panel.innerHTML = `
                 <div class="tooltip-stat-grid" style="padding:10px 14px 6px;">
                     <div class="tooltip-stat-item">⚡ 이동 <span>${cd.stats.moveSpeed}</span></div>
                     <div class="tooltip-stat-item">❤️ 체력 <span>${cd.stats.health}</span></div>
-                    <div class="tooltip-stat-item">⚔️ 공격 <span>${classId==='samurai'?'5~35':cd.stats.attack}</span></div>
+                    <div class="tooltip-stat-item">⚔️ 공격 <span>${classId==='samurai'?'25%~175%':cd.stats.attack}</span></div>
                     <div class="tooltip-stat-item">⏱️ 속도 <span>${cd.stats.attackSpeed}/s</span></div>
                 </div>
                 <div style="padding:0 14px 12px;">
@@ -1689,7 +1708,7 @@
                             <span class="tooltip-skill-name">기본 공격</span>
                             <span class="tooltip-skill-cd" style="color:#00fff5;background:rgba(0,255,245,0.1);border-color:rgba(0,255,245,0.25);">⚡ ${cd.stats.attackSpeed}/초</span>
                         </div>
-                        ${coeffHTML}${cd.tooltip ? cd.tooltip.basic : ''}
+                        ${basicCoeffHTML2}${cd.tooltip ? cd.tooltip.basic : ''}
                     </div>
                     <div class="tooltip-section-title">스킬 (우클릭)</div>
                     <div class="tooltip-ability skill-block">
@@ -1697,7 +1716,7 @@
                             <span class="tooltip-skill-name">${cd.tooltip && cd.tooltip.skillName ? cd.tooltip.skillName : (cd.skill ? cd.skill.name : '')}</span>
                             <span class="tooltip-skill-cd">⏱ ${cd.skill ? cd.skill.cooldown : '?'}초</span>
                         </div>
-                        ${cd.tooltip ? cd.tooltip.skill : ''}
+                        ${skillCoeffHTML2}${cd.tooltip ? cd.tooltip.skill : ''}
                     </div>
                 </div>`;
         }
@@ -1785,16 +1804,16 @@
             sw.addEventListener('touchend', e => {
                 const dx = e.changedTouches[0].clientX - tsX;
                 if (Math.abs(dx) > 40) {
-                    if (dx < 0 && spellIndex < spellIds.length - 1) goToSpellSlide(spellIndex + 1);
-                    else if (dx > 0 && spellIndex > 0) goToSpellSlide(spellIndex - 1);
+                    if (dx < 0) goToSpellSlide(spellIndex < spellIds.length - 1 ? spellIndex + 1 : 0);
+                    else goToSpellSlide(spellIndex > 0 ? spellIndex - 1 : spellIds.length - 1);
                 }
             }, {passive:true});
 
             document.getElementById('spellSwiperPrev').onclick = () => {
-                if (spellIndex > 0) goToSpellSlide(spellIndex - 1);
+                goToSpellSlide(spellIndex > 0 ? spellIndex - 1 : spellIds.length - 1);
             };
             document.getElementById('spellSwiperNext').onclick = () => {
-                if (spellIndex < spellIds.length - 1) goToSpellSlide(spellIndex + 1);
+                goToSpellSlide(spellIndex < spellIds.length - 1 ? spellIndex + 1 : 0);
             };
 
             const curIdx = spellIds.indexOf(mySpell);
@@ -1989,19 +2008,23 @@
                 playersRef.child(myPlayerId).set(playerData);
                 playersRef.child(myPlayerId).onDisconnect().remove();
                 
-                // 방 만들기로 진입했거나 첫 번째 플레이어면 방장
-                if (isCreating) {
-                    isHost = true;
-                    gameStateRef.set({
-                        status: GAME_STATUS.LOBBY,
-                        hostId: myPlayerId,
-                        hostName: myNickname
-                    });
-                    gameStateRef.onDisconnect().remove();
-                    document.getElementById('hostIndicator').style.display = 'block';
-                    document.getElementById('startBtn').style.display = 'inline-block';
-                    document.getElementById('practiceBtn').style.display = 'inline-block';
-                }
+                // 방장 결정: 새 방 생성이거나 gameState의 hostId가 비어있으면 방장 승계
+                gameStateRef.once('value', gSnap => {
+                    const gst = gSnap.val();
+                    const needHost = isCreating || !gst || !gst.hostId;
+                    if (needHost) {
+                        isHost = true;
+                        gameStateRef.update({
+                            status: GAME_STATUS.LOBBY,
+                            hostId: myPlayerId,
+                            hostName: myNickname
+                        });
+                        if (isCreating) gameStateRef.onDisconnect().remove();
+                        document.getElementById('hostIndicator').style.display = 'block';
+                        document.getElementById('startBtn').style.display = 'inline-block';
+                        document.getElementById('practiceBtn').style.display = 'inline-block';
+                    }
+                });
                 
                 showScreen('lobbyScreen');
                 // 대기실 직업 선택 UI 렌더링
@@ -2185,6 +2208,10 @@
             playersRef.off();
             gameStateRef.off();
 
+            // 자기장 시작 시각 초기화
+            zoneGameStartTime = Date.now();
+            zoneDmgAccum = 0;
+
             // ★ 내 이전 세션 잔여 데이터 정리 (비동기, 블로킹 없음)
             Promise.all([
                 bulletsRef.orderByChild('ownerId').equalTo(myPlayerId).once('value').then(s => s.forEach(c => c.ref.remove())),
@@ -2301,10 +2328,10 @@
             gameStateRef.on('value', (snapshot) => {
                 const state = snapshot.val();
                 if (!state || state.status === GAME_STATUS.LOBBY) {
-                    location.reload();
+                    // victoryShown=true면 승리 화면이 직접 복귀 처리 중 — reload 불필요
+                    if (!victoryShown) location.reload();
                     return;
                 }
-                // 게임 모드 동기화
                 if (state.mode) gameMode = state.mode;
             });
 
@@ -2330,10 +2357,21 @@
             document.getElementById('exitToLobbyBtn').onclick = () => {
                 if (!confirm('게임을 나가고 대기실로 돌아갈까요?')) return;
 
-                // ★ 리스너를 먼저 해제해야 location.reload() 트리거 방지
-                playersRef && playersRef.off();
-                gameStateRef && gameStateRef.off();
-                bulletsRef && bulletsRef.off();
+                const savedRoom = currentRoomId;
+                const savedClass = myClass;
+                const savedSpell = mySpell;
+                const wasPractice = (gameMode === GAME_MODE.PRACTICE);
+
+                // ① 리스너 먼저 해제
+                try { playersRef && playersRef.off(); } catch(e) {}
+                try { gameStateRef && gameStateRef.off(); } catch(e) {}
+                try { bulletsRef && bulletsRef.off(); } catch(e) {}
+                try { particlesRef && particlesRef.off(); } catch(e) {}
+                try { swingsRef && swingsRef.off(); } catch(e) {}
+                try { stabsRef && stabsRef.off(); } catch(e) {}
+                try { smokesRef && smokesRef.off(); } catch(e) {}
+                try { hitEffectsRef && hitEffectsRef.off(); } catch(e) {}
+                try { spellEffectsRef && spellEffectsRef.off(); } catch(e) {}
                 document.removeEventListener('keydown', handleKeyDown);
                 document.removeEventListener('keyup', handleKeyUp);
                 canvas.removeEventListener('mousemove', handleMouseMove);
@@ -2341,18 +2379,14 @@
                 canvas.removeEventListener('mouseup', handleMouseUp);
                 canvas.removeEventListener('contextmenu', handleRightClick);
 
-                // 내 데이터 삭제 (연습모드는 방 전체 삭제)
-                if (gameMode === GAME_MODE.PRACTICE && currentRoomId) {
-                    database.ref('rooms/' + currentRoomId).remove();
+                // ② 내 플레이어 데이터 삭제 (연습모드는 방 전체 삭제)
+                if (wasPractice && savedRoom) {
+                    database.ref('rooms/' + savedRoom).remove();
                 } else if (myPlayerId && playersRef) {
-                    playersRef.child(myPlayerId).remove();
-                    // 방장이라도 방은 유지 (남은 플레이어에게 방장 승계됨)
+                    try { playersRef.child(myPlayerId).remove(); } catch(e) {}
                 }
 
-                // 상태 초기화 (닉네임·스펠·직업은 유지)
-                const savedClass = myClass;
-                const savedSpell = mySpell;
-                currentRoomId = null;
+                // ③ 상태 초기화
                 myPlayerId = null;
                 isHost = false;
                 isReady = false;
@@ -2362,13 +2396,19 @@
                 lobbyClassIndex = 0;
                 myClass = savedClass;
                 mySpell = savedSpell;
-                // 스펠 상태 리셋
                 healActive = false; healTicks = 0;
                 rageActive = false; rageEnd = 0;
                 fluidActive = false; fluidBonus = 0;
                 hourglassActive = false; hourglassEnd = 0;
                 spellCooldownEnd = 0;
                 isDashing = false; dashRemainFrames = 0;
+                smithEnhanceLevel = 0; smithForging = false;
+                CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
+                jumongHawkeyeActive = false; muhuiZoneActive = false; zoneGameStartTime = 0; zoneDmgAccum = 0;
+                bullets.length = 0; bulletIds.clear();
+                particles.length = 0; particleIds.clear();
+                hitEffects.length = 0;
+                for (const k in players) delete players[k];
 
                 document.getElementById('info').style.display = 'none';
                 document.getElementById('playerList').style.display = 'none';
@@ -2379,8 +2419,18 @@
                 document.getElementById('practiceBtn').style.display = 'none';
                 document.getElementById('hostIndicator').style.display = 'none';
 
-                showScreen('roomScreen');
-                startRoomListListener();
+                if (!wasPractice && savedRoom) {
+                    // ④ 같은 방 대기실로 복귀
+                    currentRoomId = savedRoom;
+                    initRoomRefs(savedRoom);
+                    gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
+                        .then(() => joinLobby(false))
+                        .catch(() => joinLobby(false));
+                } else {
+                    // 연습모드는 새 방을 만들어 대기실로 복귀
+                    const newRoomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    joinRoom(newRoomId, true);
+                }
             };
 
             // 게임 루프 시작
@@ -2575,77 +2625,65 @@
         function showVictoryScreen(winnerName) {
             if (victoryShown) return;
             victoryShown = true;
-            // 대장장이 강화 초기화 (게임 종료 시)
-            smithEnhanceLevel = 0;
-            smithForging = false;
-            CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
-            jumongHawkeyeActive = false;
-            muhuiZoneActive = false;
 
             const isWinner = players[myPlayerId] && players[myPlayerId].health > 0 && !players[myPlayerId].isSpectator;
             const msg = isWinner ? `🎉 ${myNickname} 승리! 🎉` : `🏆 ${winnerName} 님이 승리했습니다!`;
 
-            // 오버레이 화면 표시
             const overlay = document.createElement('div');
             overlay.id = 'victoryOverlay';
             overlay.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
-                justify-content: center; align-items: center; z-index: 9999;
+                justify-content: center; align-items: center; z-index: 9999; pointer-events: auto;
             `;
             overlay.innerHTML = `
-                <div style="text-align:center; pointer-events: auto;">
-                    <div style="font-size: 56px; font-weight: bold; color: ${isWinner ? '#ffd700' : '#00fff5'};
-                        text-shadow: 0 0 30px ${isWinner ? '#ffd700' : '#00fff5'}; margin-bottom: 30px;">
+                <div style="text-align:center;">
+                    <div style="font-size:56px; font-weight:bold; color:${isWinner ? '#ffd700' : '#00fff5'};
+                        text-shadow:0 0 30px ${isWinner ? '#ffd700' : '#00fff5'}; margin-bottom:30px;">
                         ${msg}
                     </div>
-                    <div id="victoryCountdown" style="color: #aaa; font-size: 18px; margin-bottom: 40px;">5초 후 자동으로 방 목록으로 이동합니다...</div>
-                    <div style="display:flex; gap: 20px; justify-content: center;">
-                        <button id="victoryReplayBtn" style="padding:15px 35px; background:#00fff5; color:#16213e;
-                            border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; pointer-events: auto; z-index: 10000; position: relative;">
-                            즉시 방 목록으로
-                        </button>
+                    <div id="victoryCountdown" style="color:#aaa; font-size:18px; margin-bottom:40px;">
+                        5초 후 자동으로 대기실로 이동합니다...
                     </div>
+                    <button id="victoryReplayBtn" style="padding:15px 35px; background:#00fff5; color:#16213e;
+                        border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer;">
+                        즉시 대기실로
+                    </button>
                 </div>
             `;
             document.body.appendChild(overlay);
 
-            // 카운트다운 표시
+            // 카운트다운
             let remaining = 5;
             const countdownEl = document.getElementById('victoryCountdown');
-            const countdownInterval = setInterval(() => {
+            const tickInterval = setInterval(() => {
                 remaining--;
                 if (remaining > 0) {
-                    countdownEl.textContent = `${remaining}초 후 자동으로 방 목록으로 이동합니다...`;
+                    countdownEl.textContent = `${remaining}초 후 자동으로 대기실로 이동합니다...`;
                 } else {
-                    clearInterval(countdownInterval);
+                    clearInterval(tickInterval);
                 }
             }, 1000);
 
-            // 즉시 이동 버튼
-            document.getElementById('victoryReplayBtn').addEventListener('click', () => {
-                clearInterval(countdownInterval);
+            let going = false;
+            function goToLobby() {
+                if (going) return;
+                going = true;
+                clearInterval(tickInterval);
                 clearTimeout(autoTimer);
-                goToRoomList();
-            });
 
-            // 5초 후 자동 이동
-            let autoTimer = setTimeout(() => {
-                clearInterval(countdownInterval);
-                goToRoomList();
-            }, 5000);
-
-            let roomListGoing = false; // 재진입 방지
-            function goToRoomList() {
-                if (roomListGoing) return;
-                roomListGoing = true;
-
-                // ★ 리스너 먼저 전부 해제 (location.reload 트리거 방지)
+                // ① 모든 Firebase 리스너 해제 (location.reload 트리거 방지)
                 try { playersRef && playersRef.off(); } catch(e) {}
                 try { gameStateRef && gameStateRef.off(); } catch(e) {}
                 try { bulletsRef && bulletsRef.off(); } catch(e) {}
+                try { particlesRef && particlesRef.off(); } catch(e) {}
+                try { swingsRef && swingsRef.off(); } catch(e) {}
+                try { stabsRef && stabsRef.off(); } catch(e) {}
+                try { smokesRef && smokesRef.off(); } catch(e) {}
+                try { hitEffectsRef && hitEffectsRef.off(); } catch(e) {}
+                try { spellEffectsRef && spellEffectsRef.off(); } catch(e) {}
 
-                // 키/마우스 이벤트 해제
+                // ② 키/마우스 이벤트 해제
                 document.removeEventListener('keydown', handleKeyDown);
                 document.removeEventListener('keyup', handleKeyUp);
                 canvas.removeEventListener('mousemove', handleMouseMove);
@@ -2653,17 +2691,16 @@
                 canvas.removeEventListener('mouseup', handleMouseUp);
                 canvas.removeEventListener('contextmenu', handleRightClick);
 
-                // 내 플레이어 데이터 삭제 (리스너 off 이후에 삭제해야 reload 안 됨)
+                // ③ 내 플레이어 데이터만 삭제 (리스너 off 후에 실행)
                 const _pid = myPlayerId;
-                const _ref = playersRef;
-                if (_pid && _ref) {
-                    try { _ref.child(_pid).remove(); } catch(e) {}
+                if (_pid && playersRef) {
+                    try { playersRef.child(_pid).remove(); } catch(e) {}
                 }
 
-                // 상태 초기화 (닉네임·직업·스펠 유지)
+                // ④ 로컬 상태 초기화 (방 ID·닉네임·직업·스펠 유지)
+                const savedRoom = currentRoomId;
                 const savedClass = myClass;
                 const savedSpell = mySpell;
-                currentRoomId = null;
                 myPlayerId = null;
                 isHost = false;
                 isReady = false;
@@ -2680,26 +2717,44 @@
                 hourglassActive = false; hourglassEnd = 0;
                 spellCooldownEnd = 0;
                 isDashing = false; dashRemainFrames = 0;
+                smithEnhanceLevel = 0; smithForging = false;
+                CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
+                jumongHawkeyeActive = false; muhuiZoneActive = false; zoneGameStartTime = 0; zoneDmgAccum = 0;
+                bullets.length = 0; bulletIds.clear();
+                particles.length = 0; particleIds.clear();
+                hitEffects.length = 0;
+                for (const k in players) delete players[k];
+                for (const k in playerSwings) delete playerSwings[k];
+                for (const k in playerStabs) delete playerStabs[k];
+                for (const k in playerSpellEffects) delete playerSpellEffects[k];
 
-                // 오버레이 제거
+                // ⑤ HUD·오버레이 정리
                 try { overlay.remove(); } catch(e) {}
-
-                // 게임 HUD 숨기기
                 document.getElementById('info').style.display = 'none';
                 document.getElementById('playerList').style.display = 'none';
                 document.getElementById('controls').style.display = 'none';
-
-                // 준비 버튼 초기화
                 document.getElementById('readyBtn').textContent = '준비 완료';
                 document.getElementById('readyBtn').style.background = '#00fff5';
                 document.getElementById('startBtn').style.display = 'none';
                 document.getElementById('practiceBtn').style.display = 'none';
                 document.getElementById('hostIndicator').style.display = 'none';
 
-                // 방 목록으로
-                showScreen('roomScreen');
-                startRoomListListener();
+                if (savedRoom) {
+                    // ⑥ 같은 방 대기실로 복귀
+                    currentRoomId = savedRoom;
+                    initRoomRefs(savedRoom);
+                    // gameState LOBBY 리셋 후 대기실 재입장
+                    gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
+                        .then(() => joinLobby(false))
+                        .catch(() => joinLobby(false));
+                } else {
+                    showScreen('roomScreen');
+                    startRoomListListener();
+                }
             }
+
+            document.getElementById('victoryReplayBtn').addEventListener('click', goToLobby);
+            let autoTimer = setTimeout(goToLobby, 5000);
         }
 
         function handleKeyDown(e) {
@@ -3008,7 +3063,11 @@
                 }
                 lastAttackTime = now;
             } else {
+                // 보병 이점사: 첫 발 즉시, 두 번째 발 80ms 후
                 shootBullet(mouseX, mouseY);
+                setTimeout(() => {
+                    if (myPlayerId && players[myPlayerId]) shootBullet(mouseX, mouseY);
+                }, 80);
                 lastAttackTime = now;
             }
         }
@@ -3040,18 +3099,13 @@
             if (now < skillCooldownEnd) return;
 
             if (myClass === 'warrior') {
-                // 워리어 스킬: 3초 방어 + 이동속도 증가 + 다음 회전 공격 준비
+                // 워리어 스킬: 3초 방어 + 이동속도 +1.5 + 회전베기 준비 (히트 시 자동 리셋)
                 warriorSkillActive = true;
                 warriorSkillEnd = now + 3000;
                 warriorSpinReady = true;
                 skillCooldownEnd = now + CLASSES.warrior.skill.cooldown * 1000;
                 // Firebase에 스킬 상태 공유
                 playersRef.child(myPlayerId).update({ warriorSkillActive: true });
-                setTimeout(() => {
-                    warriorSkillActive = false;
-                    warriorSpinReady = false;
-                    playersRef.child(myPlayerId).update({ warriorSkillActive: false });
-                }, 3000);
             } else if (myClass === 'assassin') {
                 // 어쌔신 스킬: 연기와 함께 은신 돌입
                 assassinStealthActive = true;
@@ -3123,15 +3177,15 @@
                 setTimeout(() => {
                     smithForging = false;
                     smithEnhanceLevel++;
-                    // 현재 능력치에 강화 적용 (매 강화마다 +0.5/+5/+0.25 고정 증가)
+                    // 현재 능력치에 강화 적용 (매 강화마다 +0.25/+5/+0.25 고정 증가)
                     const cur = CLASSES.blacksmith.stats;
-                    const newMoveSpeed = cur.moveSpeed + 0.5;
+                    const newMoveSpeed = cur.moveSpeed + 0.25;
                     const newAttack = cur.attack + 5;
                     const newAttackSpeed = cur.attackSpeed + 0.25;
-                    // 체력은 현재 체력 + 20 (최대체력도 +10 증가, 풀피로 채워지지 않음)
+                    // 체력은 최대체력 +10 증가, 현재체력도 +10
                     const curHp = players[myPlayerId] ? players[myPlayerId].health : cur.health;
                     const newMaxHp = cur.health + 10;
-                    const newHp = Math.min(curHp + 20, newMaxHp); // 현재체력 + 20 (최대체력 초과 불가)
+                    const newHp = Math.min(curHp + 10, newMaxHp);
                     // CLASSES 스탯 로컬 업데이트 (공격 계산에 사용)
                     CLASSES.blacksmith.stats = {
                         moveSpeed: newMoveSpeed,
@@ -3418,8 +3472,10 @@
                 };
                 particleIds.add(p.id);
                 particles.push(p);
-                particlesRef.child(p.id).set(p);
-                setTimeout(() => particlesRef.child(p.id).remove(), 1500);
+                if (i % 2 === 0) { // 격인덱스만 Firebase 업로드
+                    particlesRef.child(p.id).set(p);
+                    setTimeout(() => { try { particlesRef.child(p.id).remove(); } catch(e){} }, 1500);
+                }
             }
         }
 
@@ -3555,34 +3611,46 @@
         }
 
         // 대쉬 파티클 생성 + Firebase 공유
+        let _dashFrameCount = 0;
         function spawnDashParticles(x, y) {
+            _dashFrameCount++;
             const now = Date.now();
-            for (let i = 0; i < 5; i++) {
+            // 격프레임마다만 Firebase 업로드 (60fps → 30fps write)
+            const doUpload = (_dashFrameCount % 2 === 0);
+            const baseColor = players[myPlayerId] ? players[myPlayerId].color : '#fff';
+            // 대장장이 강화 레벨에 따라 황금빛으로 변화
+            const color = (myClass === 'blacksmith' && smithEnhanceLevel >= 3) ? '#ffd700'
+                        : (myClass === 'blacksmith' && smithEnhanceLevel >= 1) ? '#ff8c00'
+                        : baseColor;
+            for (let i = 0; i < 3; i++) { // 5→3개로 감소
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 2.5 + 0.5;
-                const decay = 0.07 + Math.random() * 0.06;
+                const speed = Math.random() * 2 + 0.5;
+                const decay = 0.09 + Math.random() * 0.05;
                 const p = {
                     id: myPlayerId + '_p_' + now + '_' + i,
                     ownerId: myPlayerId,
                     x: x + PLAYER_SIZE / 2,
                     y: y + PLAYER_SIZE / 2,
-                    vx: Math.cos(angle) * speed - dashVx * 0.18,
-                    vy: Math.sin(angle) * speed - dashVy * 0.18,
-                    radius: Math.random() * 5 + 3,
+                    vx: Math.cos(angle) * speed - dashVx * 0.12,
+                    vy: Math.sin(angle) * speed - dashVy * 0.12,
+                    radius: Math.random() * 4 + 2,
                     life: 1.0,
-                    decay: decay,
-                    createdAt: now,  // 수신 측에서 경과 시간 보정에 사용
-                    color: players[myPlayerId] ? players[myPlayerId].color : '#fff'
+                    decay,
+                    createdAt: now,
+                    color
                 };
                 particleIds.add(p.id);
                 particles.push(p);
-                particlesRef.child(p.id).set(p);
-                setTimeout(() => particlesRef.child(p.id).remove(), 1500);
+                if (doUpload) {
+                    particlesRef.child(p.id).set(p);
+                    setTimeout(() => { try { particlesRef.child(p.id).remove(); } catch(e){} }, 1200);
+                }
             }
         }
 
-        // 파티클 업데이트
+        // 파티클 업데이트 (최대 200개 제한)
         function updateParticles() {
+            if (particles.length > 200) particles.splice(0, particles.length - 200);
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
@@ -3735,7 +3803,7 @@
                     y: startY,
                     vx: skillDirection.x * classData.skill.bulletSpeed,
                     vy: skillDirection.y * classData.skill.bulletSpeed,
-                    damage: classData.stats.attack,
+                    damage: Math.round(classData.stats.attack * 0.75),
                     ownerId: myPlayerId,
                     createdAt: now,
                     maxLifetime: 3000,
@@ -3799,6 +3867,11 @@
                         // ── 360도 회전: 범위 안이면 무조건 히트 (각도 무관) ──
                         swingHitIds.add(id);
                         dealDamage(id, CLASSES.warrior.stats.attack, tx, ty);
+                        // ★ 다리우스 궁 리셋: 회전베기 히트 시 전투태세 3초 리셋 + 다음 공격도 회전베기
+                        if (warriorSkillActive) {
+                            warriorSkillEnd = Date.now() + 3000;
+                            warriorSpinReady = true;
+                        }
                     } else {
                         // ── 일반 스윙: 현재까지 휘두른 호(arc) 안에 있으면 히트 ──
                         const swingStartAngle = warriorSwingDir - halfArc;
@@ -3961,7 +4034,7 @@
                     const dist = Math.sqrt((myPlayer.x + PLAYER_SIZE/2 - tx)**2 + (myPlayer.y + PLAYER_SIZE/2 - ty)**2);
                     if (dist < PLAYER_SIZE + 10) {
                         samuraiCounterHitIds.add(id);
-                        dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty, true);
+                        dealDamage(id, Math.round(CLASSES.samurai.stats.attack * SAMURAI_COUNTER_DMG_PCT), tx, ty, true);
                     }
                 }
 
@@ -3980,7 +4053,7 @@
                         const dist = Math.sqrt((cx - tx)**2 + (cy - ty)**2);
                         if (dist < COUNTER_BURST_RADIUS) {
                             samuraiCounterHitIds.add(id);
-                            dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty, true);
+                            dealDamage(id, Math.round(CLASSES.samurai.stats.attack * SAMURAI_COUNTER_DMG_PCT), tx, ty, true);
                         }
                     }
                     // 피해 범위 원 표시 (Firebase로 모든 플레이어에게 공유)
@@ -4063,7 +4136,9 @@
                         // 시작점을 -PLAYER_SIZE까지 확장해 돌진 후 바로 붙은 적도 판정
                         if (parallelDist >= -PLAYER_SIZE && parallelDist <= thrustLength && perpDist < halfW) {
                             samuraiSlashHitIds.add(id);
-                            dealDamage(id, lvl.dmg, tx, ty);
+                            // 차징 dmg를 공격력 % 비례로 계산 (기본 공격력 20 기준, lvl.dmg/20 = pct)
+                            const thrustDmg = Math.round(CLASSES.samurai.stats.attack * (lvl.dmg / 20));
+                            dealDamage(id, thrustDmg, tx, ty);
                         }
                     }
                 }
@@ -4196,8 +4271,8 @@
             const now = Date.now();
             const cx = x + PLAYER_SIZE / 2;
             const cy = y + PLAYER_SIZE / 2;
-            // 황금 파티클 분출
-            for (let i = 0; i < 25; i++) {
+            // 황금 파티클: 로컬 15개 시각 효과 + Firebase는 8개만 공유
+            for (let i = 0; i < 15; i++) {
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 5 + 1.5;
                 const p = {
@@ -4215,8 +4290,10 @@
                 };
                 particleIds.add(p.id);
                 particles.push(p);
-                particlesRef.child(p.id).set(p);
-                setTimeout(() => particlesRef.child(p.id).remove(), 2500);
+                if (i < 8) { // Firebase 업로드는 8개만
+                    particlesRef.child(p.id).set(p);
+                    setTimeout(() => { try { particlesRef.child(p.id).remove(); } catch(e){} }, 2500);
+                }
             }
         }
 
@@ -4274,6 +4351,38 @@
                         }
                     }
                 }
+            }
+        }
+
+        // ========== 자기장 ==========
+        function getZoneRadius() {
+            const elapsed = Date.now() - zoneGameStartTime;
+            if (elapsed < ZONE_DELAY) return ZONE_MAX_R; // 대기 중 — 풀사이즈
+            const shrinkElapsed = Math.min(elapsed - ZONE_DELAY, ZONE_SHRINK_DUR);
+            const t = shrinkElapsed / ZONE_SHRINK_DUR; // 0 → 1
+            // ease-in으로 점점 빠르게 좁아짐
+            return ZONE_MAX_R * (1 - t * t) * (1 - ZONE_MIN_R / ZONE_MAX_R) + ZONE_MIN_R;
+        }
+
+        function updateZone() {
+            if (!myPlayerId || !players[myPlayerId] || !isAlive) return;
+            const r = getZoneRadius();
+            if (r >= ZONE_MAX_R) return; // 아직 안 좁아짐
+            const cx = MAP_W / 2;
+            const cy = MAP_H / 2;
+            const myPlayer = players[myPlayerId];
+            const px = myPlayer.x + PLAYER_SIZE / 2;
+            const py = myPlayer.y + PLAYER_SIZE / 2;
+            const dist = Math.sqrt((px - cx)**2 + (py - cy)**2);
+            if (dist > r) {
+                // 자기장 밖 — 프레임당 누적, 1초마다 피해
+                zoneDmgAccum += 1000 / 60;
+                if (zoneDmgAccum >= 1000) {
+                    zoneDmgAccum -= 1000;
+                    dealDamage(myPlayerId, ZONE_DPS, px, py, true);
+                }
+            } else {
+                zoneDmgAccum = 0;
             }
         }
 
@@ -4414,11 +4523,11 @@
             const stats = CLASSES[myClass].stats;
             let moved = false;
 
-            // 이동속도 (워리어 스킬 시 25% 증가, 어쌔신 은신 시 2배, 대장장이 경직 시 0, 모래시계 시 0)
+            // 이동속도 (워리어 스킬 시 +1.5 증가, 어쌔신 은신 시 2배, 대장장이 경직 시 0, 모래시계 시 0)
             const curSpeed = (smithForging || samuraiParryActive || hourglassActive)
                 ? 0
                 : (myClass === 'warrior' && warriorSkillActive)
-                ? stats.moveSpeed * 1.25
+                ? stats.moveSpeed + 1.5
                 : (myClass === 'assassin' && assassinStealthActive)
                 ? stats.moveSpeed * 2
                 : stats.moveSpeed + (fluidActive ? fluidBonus : 0);
@@ -4454,11 +4563,11 @@
             if (Math.abs(jumongCurrentZoom - jumongTargetZoom) < 0.001) jumongCurrentZoom = jumongTargetZoom;
             
             if (moved) {
-                playersRef.child(myPlayerId).update({
-                    x: myPlayer.x,
-                    y: myPlayer.y,
-                    timestamp: Date.now()
-                });
+                const _now = Date.now();
+                if (_now - _lastPosWrite >= 50) { // 20fps 쓰로틀
+                    _lastPosWrite = _now;
+                    playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y, timestamp: _now });
+                }
             }
             
             document.getElementById('myHealth').textContent = `${myPlayer.health}/${myPlayer.maxHealth}`;
@@ -4467,6 +4576,13 @@
             if (myClass === 'assassin' && assassinStealthActive && Date.now() > assassinStealthEnd) {
                 assassinStealthActive = false;
                 playersRef.child(myPlayerId).update({ stealthed: false });
+            }
+
+            // 워리어 전투태세 만료 체크 (매 프레임, 회전베기 히트 시 리셋되므로 setTimeout 미사용)
+            if (myClass === 'warrior' && warriorSkillActive && Date.now() > warriorSkillEnd) {
+                warriorSkillActive = false;
+                warriorSpinReady = false;
+                playersRef.child(myPlayerId).update({ warriorSkillActive: false });
             }
 
             updateSkill();
@@ -4487,6 +4603,7 @@
             }
             updateJumong();
             updateMuhui();
+            if (gameMode === GAME_MODE.NORMAL) updateZone();
         }
 
         function render() {
@@ -4551,6 +4668,75 @@
             if (mapScreenX > 0) ctx.fillRect(0, mapScreenY, mapScreenX, MAP_H);
             if (mapScreenX + MAP_W < _vW) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, _vW - mapScreenX - MAP_W, MAP_H);
             ctx.restore();
+
+            // ── 자기장 렌더링 (NORMAL 모드) ──
+            if (gameMode === GAME_MODE.NORMAL) {
+                const zr = getZoneRadius();
+                if (zr < ZONE_MAX_R) {
+                    const zcx = MAP_W / 2 - cameraX_r; // 맵 중심 스크린 좌표
+                    const zcy = MAP_H / 2 - cameraY_r;
+                    const now_z = Date.now();
+                    const pulse = 0.12 * Math.sin(now_z / 300);
+
+                    // 자기장 바깥 영역 — 보라/파란 반투명 오버레이 (원형 클리핑 역이용)
+                    ctx.save();
+                    // 전체 캔버스를 채우고 안쪽(자기장 원)을 도려냄
+                    ctx.beginPath();
+                    ctx.rect(0, 0, _vW, _vH);
+                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2, true); // 반시계 = 구멍
+                    ctx.fillStyle = `rgba(80, 0, 180, ${0.38 + pulse})`;
+                    ctx.fill('evenodd');
+
+                    // 자기장 경계 링
+                    ctx.beginPath();
+                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(160, 80, 255, ${0.85 + pulse})`;
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#aa44ff';
+                    ctx.shadowBlur = 18;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // 자기장 밖에 있을 때 화면 테두리 경고
+                    if (myPlayerId && players[myPlayerId] && isAlive) {
+                        const me = players[myPlayerId];
+                        const mpx = me.x + PLAYER_SIZE / 2;
+                        const mpy = me.y + PLAYER_SIZE / 2;
+                        const mdist = Math.sqrt((mpx - MAP_W/2)**2 + (mpy - MAP_H/2)**2);
+                        if (mdist > zr) {
+                            const warnAlpha = 0.25 + 0.2 * Math.abs(Math.sin(now_z / 200));
+                            ctx.beginPath();
+                            ctx.rect(0, 0, _vW, _vH);
+                            ctx.fillStyle = `rgba(160, 0, 255, ${warnAlpha})`;
+                            ctx.fill();
+                        }
+                    }
+                    ctx.restore();
+
+                    // 자기장 카운트다운 HUD
+                    const elapsed_z = now_z - zoneGameStartTime;
+                    ctx.save();
+                    ctx.font = 'bold 14px Malgun Gothic';
+                    ctx.textAlign = 'center';
+                    if (elapsed_z < ZONE_DELAY) {
+                        // 대기 중 — 카운트다운
+                        const countdown = Math.ceil((ZONE_DELAY - elapsed_z) / 1000);
+                        ctx.fillStyle = 'rgba(200,160,255,0.9)';
+                        ctx.shadowColor = '#aa44ff';
+                        ctx.shadowBlur = 8;
+                        ctx.fillText(`⚡ 자기장 ${countdown}초 후 시작`, canvas.width / 2, 52);
+                    } else {
+                        // 좁아지는 중
+                        const t = Math.min((elapsed_z - ZONE_DELAY) / ZONE_SHRINK_DUR, 1);
+                        const pct = Math.round((1 - t) * 100);
+                        ctx.fillStyle = pct < 30 ? 'rgba(255,100,100,0.95)' : 'rgba(200,160,255,0.9)';
+                        ctx.shadowColor = '#aa44ff';
+                        ctx.shadowBlur = 8;
+                        ctx.fillText(`⚡ 자기장 ${pct}%`, canvas.width / 2, 52);
+                    }
+                    ctx.restore();
+                }
+            }
             
             // ── 무희 장판 (플레이어 아래에 표시) ──
             for (const ownerId in playerMuhuiZones) {
@@ -4684,6 +4870,32 @@
                     ctx.shadowBlur = 6;
                     ctx.fillRect(cgX, cgY, cgW * Math.max(0, Math.min(1, chargeRatio2)), cgH);
                     ctx.shadowBlur = 0;
+                }
+
+                // ── 워리어 전투태세 게이지 (체력바 바로 위) ──
+                if (player.class === 'warrior' && player.warriorSkillActive) {
+                    const now3 = Date.now();
+                    // warriorSkillEnd는 로컬에만 있으므로 내 플레이어일 때만 정확한 시간 표시
+                    // 다른 플레이어는 active 여부만 알 수 있으므로 풀게이지로 표시
+                    const isMyWarrior = (player === players[myPlayerId]);
+                    const ratio = isMyWarrior
+                        ? Math.max(0, Math.min(1, (warriorSkillEnd - now3) / 3000))
+                        : 1;
+                    const wgW = hpBarW;
+                    const wgH = 4;
+                    const wgX = hpBarX;
+                    const wgY = hpBarY - wgH - 3;
+                    // 배경
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(wgX - 1, wgY - 1, wgW + 2, wgH + 2);
+                    // 게이지 색: 회전베기 준비 중이면 밝은 금색, 아니면 붉은색
+                    const isSpinReady = isMyWarrior && warriorSpinReady;
+                    ctx.fillStyle = isSpinReady ? '#ffd700' : '#ff4444';
+                    ctx.shadowColor = isSpinReady ? '#ffaa00' : '#ff0000';
+                    ctx.shadowBlur = 8;
+                    ctx.fillRect(wgX, wgY, wgW * ratio, wgH);
+                    ctx.shadowBlur = 0;
+
                 }
 
                 
