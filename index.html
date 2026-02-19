@@ -309,82 +309,170 @@
             color: #16213e;
         }
 
-        /* 대기실 화면 */
-        #lobbyScreen .box {
-            min-width: 700px;
-            max-width: 900px;
+        /* ═══════════════════════════════════════════════════
+           대기실 — 3분할 풀스크린
+           좌: 스펠  |  중: 직업선택+정보  |  우: 명단
+        ═══════════════════════════════════════════════════ */
+        #lobbyScreen { align-items: stretch; background: rgba(0,0,0,0.97); }
+        #lobbyScreen > .box {
+            width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh;
+            border-radius: 0; padding: 16px 44px 12px;
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: none; text-align: left;
         }
 
-        .lobby-info {
-            background: #0f3460;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
+        /* 헤더 */
+        #lobbyHeaderBar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0; margin-bottom: 12px; padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        #lobbyHeaderBar #lobbyTitle { margin: 0; font-size: 20px; letter-spacing: 1px; }
+        #lobbyHeaderMeta { display: flex; align-items: center; gap: 18px; font-size: 13px; color: #666; }
+        #lobbyHeaderMeta strong { color: #ccc; }
+        #hostIndicator { color: #ffd700; font-size: 13px; font-weight: bold; display: none; }
+
+        /* ── 3분할: 스펠(260px) | 직업(minmax 360px, 1fr) | 명단(340px) ── */
+        #lobbyGrid {
+            display: grid;
+            grid-template-columns: 260px minmax(360px, 520px) 340px;
+            justify-content: center;   /* 전체를 중앙 정렬 → 남은 공간은 양쪽 자동 여백 */
+            gap: 14px;
+            flex: 1;
+            min-height: 0;
         }
 
-        .player-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 20px 0;
+        /* 공통 패널 */
+        .lby-panel {
+            border-radius: 14px; display: flex; flex-direction: column;
+            overflow: hidden; min-height: 0;
         }
+        .lby-panel-head {
+            font-size: 10px; font-weight: bold; letter-spacing: 2px;
+            text-transform: uppercase; padding: 9px 14px 7px; flex-shrink: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* ── 좌: 스펠 ── */
+        #lobbyLeft {
+            background: rgba(255,170,0,0.04);
+            border: 1.5px solid rgba(255,170,0,0.28);
+        }
+        #lobbyLeft .lby-panel-head { color: #ffaa00; }
+
+        /* 스펠 스와이퍼 */
+        #spellSwiper  { position: relative; overflow: hidden; flex: 1; min-height: 0; }
+        #spellSlider  { display: flex; height: 100%; transition: transform .35s cubic-bezier(.25,.46,.45,.94); }
+        .lby-spell-slide {
+            min-width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 10px 48px; /* 화살표(32px) 피하는 패딩 */
+        }
+        .lby-spell-card {
+            width: 100%; text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: pointer; padding: 16px 10px; border-radius: 12px;
+            border: 2px solid transparent; transition: all .22s;
+            background: rgba(255,170,0,0.05);
+        }
+        .lby-spell-card:hover   { background: rgba(255,170,0,0.11); border-color: rgba(255,170,0,0.35); }
+        .lby-spell-card.selected {
+            background: rgba(255,170,0,0.15); border-color: #ffaa00;
+            box-shadow: 0 0 22px rgba(255,170,0,0.25);
+        }
+        .lby-spell-card .sc-icon { font-size: 50px; line-height: 1; filter: drop-shadow(0 0 12px rgba(255,170,0,.5)); }
+        .lby-spell-card .sc-name { font-size: 20px; font-weight: bold; color: #ffaa00; }
+        .lby-spell-card .sc-cd   { font-size: 11px; font-weight: bold; color: #ff9900; background: rgba(255,153,0,0.12); border: 1px solid rgba(255,153,0,0.25); border-radius: 20px; padding: 2px 10px; }
+        .lby-spell-card .sc-desc { font-size: 11.5px; color: #999; line-height: 1.6; max-width: 185px; margin-top: 4px; }
+
+        /* 스펠 화살표 — 주황, 작게 */
+        #lobbyLeft .swiper-nav {
+            background: rgba(255,170,0,0.15); border-color: rgba(255,170,0,0.4);
+            color: #ffaa00; width: 32px; height: 32px; font-size: 17px;
+        }
+        #lobbyLeft .swiper-nav:hover { background: rgba(255,170,0,0.3); }
+
+        #spellDots { display: flex; justify-content: center; gap: 7px; padding: 7px 0 9px; flex-shrink: 0; }
+        #spellDots .swiper-dot.active { background: #ffaa00; }
+
+        /* ── 중앙: 직업 선택 + 정보 통합 ── */
+        #lobbyCenter {
+            background: rgba(0,255,245,0.03);
+            border: 1.5px solid rgba(0,255,245,0.2);
+        }
+        #lobbyCenter .lby-panel-head { color: #00fff5; }
+
+        /* 직업 스와이퍼 */
+        #lobbyClassSwiper { position: relative; overflow: hidden; height: 230px; flex-shrink: 0; }
+        #lobbyClassSlider { display: flex; height: 100%; transition: transform .38s cubic-bezier(.25,.46,.45,.94); }
+        .lby-class-slide {
+            min-width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            padding: 8px 52px; /* 화살표(34px) 피하는 패딩 */
+        }
+        .lby-class-card {
+            width: 100%; text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .lby-class-card .lcc-icon { font-size: 64px; line-height: 1; filter: drop-shadow(0 0 16px rgba(0,255,245,.45)); }
+        .lby-class-card .lcc-name { font-size: 24px; font-weight: bold; color: #00fff5; text-shadow: 0 0 10px rgba(0,255,245,.4); }
+
+        /* 직업 화살표 */
+        #lobbyCenter .swiper-nav { width: 34px; height: 34px; font-size: 18px; }
+
+        #lobbyClassDots { display: flex; justify-content: center; gap: 7px; padding: 6px 0 4px; flex-shrink: 0; }
+
+        /* 직업 정보 영역 (슬라이더 아래 스크롤) */
+        #lobbyClassInfo { flex: 1; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.06); }
+
+        /* ── 우: 플레이어 명단 ── */
+        #lobbyRight {
+            background: rgba(255,255,255,0.02);
+            border: 1.5px solid rgba(255,255,255,0.09);
+        }
+        #lobbyRight .lby-panel-head { color: #777; letter-spacing: 1.5px; }
+
+        .player-list { flex: 1; overflow-y: auto; padding: 6px 13px 10px; }
 
         .lobby-player {
-            background: #0f3460;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 2px solid transparent;
+            background: rgba(15,52,96,0.55); padding: 10px 12px; margin: 6px 0;
+            border-radius: 10px; display: flex; justify-content: space-between;
+            align-items: center; border: 1.5px solid transparent; gap: 6px; transition: border-color .2s;
         }
+        .lobby-player.ready  { border-color: rgba(0,220,0,.5); background: rgba(0,60,0,.22); }
+        .lobby-player.host   { border-color: rgba(255,215,0,.4); }
 
-        .lobby-player.ready {
-            border-color: #00ff00;
-            background: rgba(0, 255, 0, 0.1);
+        .lobby-player-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+        .lp-name-row {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; font-weight: bold;
         }
-
-        .lobby-player.host {
-            border-color: #ffd700;
-            background: rgba(255, 215, 0, 0.1);
+        .lp-name-row .player-color {
+            width: 11px; height: 11px; border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.4); flex-shrink: 0;
         }
-
-        .lobby-player-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
+        .lp-badge-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
         .lobby-player-class {
-            background: rgba(0, 255, 245, 0.2);
-            padding: 5px 15px;
-            border-radius: 5px;
-            font-size: 14px;
+            background: rgba(0,255,245,0.1); color: #00fff5;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap;
         }
-
+        .lobby-player-spell-badge {
+            background: rgba(255,170,0,0.1); color: #ffaa00;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap;
+        }
         .lobby-player-status {
-            padding: 5px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
+            padding: 3px 10px; border-radius: 5px; font-size: 10px;
+            font-weight: bold; white-space: nowrap; flex-shrink: 0;
         }
+        .lobby-player-status.ready   { background: #00c853; color: #000; }
+        .lobby-player-status.waiting { background: #bf360c; color: #fff; }
 
-        .lobby-player-status.ready {
-            background: #00ff00;
-            color: #000;
-        }
-
-        .lobby-player-status.waiting {
-            background: #ff9800;
-            color: #000;
-        }
-
+        /* 하단 버튼 */
         .lobby-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 20px;
+            display: flex; gap: 12px; justify-content: center;
+            margin-top: 12px; flex-shrink: 0;
         }
+        .lobby-buttons button { padding: 10px 26px; font-size: 15px; margin: 0; }
 
         /* 게임 대기 화면 */
         #waitingScreen .box {
@@ -416,7 +504,7 @@
             position: relative;
             width: 100vw;
             height: 100vh;
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
         }
@@ -428,6 +516,7 @@
         }
 
         #info {
+            display: none;
             position: fixed;
             top: 20px;
             left: 20px;
@@ -449,6 +538,7 @@
         }
 
         #playerList {
+            display: none;
             position: fixed;
             top: 20px;
             right: 20px;
@@ -484,6 +574,7 @@
         }
 
         #controls {
+            display: none;
             position: fixed;
             bottom: 20px;
             left: 20px;
@@ -503,6 +594,176 @@
             margin-top: 10px;
             font-size: 14px;
         }
+
+        /* 스펠 카드 */
+        .spell-card {
+            width: 110px;
+            padding: 14px 10px;
+            background: #0f3460;
+            border: 2px solid rgba(255,170,0,0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+            user-select: none;
+        }
+        .spell-card:hover {
+            border-color: #ffaa00;
+            background: rgba(255,170,0,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255,170,0,0.3);
+        }
+        .spell-card.selected {
+            border-color: #ffaa00;
+            background: rgba(255,170,0,0.2);
+            box-shadow: 0 0 20px rgba(255,170,0,0.5);
+        }
+        .spell-card .spell-icon { font-size: 32px; margin-bottom: 6px; }
+        .spell-card .spell-name { font-size: 13px; font-weight: bold; color: #ffaa00; margin-bottom: 4px; }
+        .spell-card .spell-cd   { font-size: 11px; color: #aaa; }
+        .spell-card .spell-desc { font-size: 10px; color: #888; margin-top: 4px; line-height: 1.3; }
+
+        /* 직업 툴팁 패널 */
+        .tooltip-section-title {
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #555;
+            margin: 14px 0 5px 0;
+        }
+        .tooltip-section-title:first-child { margin-top: 0; }
+
+        /* 스킬 헤더 (이름 + 쿨타임 분리) */
+        .tooltip-skill-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+        .tooltip-skill-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .tooltip-skill-cd {
+            font-size: 11px;
+            font-weight: bold;
+            color: #ff9900;
+            background: rgba(255,153,0,0.12);
+            border: 1px solid rgba(255,153,0,0.3);
+            border-radius: 20px;
+            padding: 2px 10px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tooltip-ability {
+            background: rgba(0,255,245,0.04);
+            border: 1px solid rgba(0,255,245,0.1);
+            border-left: 3px solid #00fff5;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 12.5px;
+            line-height: 1.75;
+            color: #bbc;
+        }
+        .tooltip-ability.skill-block {
+            border-left-color: #ff9900;
+            border-color: rgba(255,153,0,0.1);
+            background: rgba(255,153,0,0.04);
+        }
+        .tooltip-ability b { color: #fff; }
+
+        /* 버프/디버프/데미지 인라인 태그 */
+        .tt-buff {
+            display: inline-block;
+            background: rgba(0,255,120,0.15);
+            color: #00ff88;
+            border: 1px solid rgba(0,255,120,0.3);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11.5px;
+            font-weight: bold;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+        .tt-debuff {
+            display: inline-block;
+            background: rgba(255,60,60,0.15);
+            color: #ff6666;
+            border: 1px solid rgba(255,60,60,0.3);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11.5px;
+            font-weight: bold;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+        .tt-dmg {
+            display: inline-block;
+            background: rgba(255,200,0,0.15);
+            color: #ffd700;
+            border: 1px solid rgba(255,200,0,0.3);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11.5px;
+            font-weight: bold;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+        .tt-neut {
+            display: inline-block;
+            background: rgba(180,180,255,0.12);
+            color: #aaaaff;
+            border: 1px solid rgba(180,180,255,0.22);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11.5px;
+            font-weight: bold;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+
+        .tooltip-coeff-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .tooltip-coeff-badge {
+            font-size: 12px;
+            font-weight: bold;
+            background: rgba(0,255,245,0.15);
+            color: #00fff5;
+            border-radius: 6px;
+            padding: 2px 8px;
+            white-space: nowrap;
+        }
+        .tooltip-coeff-badge.fixed {
+            background: rgba(255,153,0,0.15);
+            color: #ff9900;
+        }
+        .tooltip-coeff-label {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .tooltip-stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .tooltip-stat-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .tooltip-stat-item span { color: #00fff5; font-weight: bold; }
 
         .loading {
             color: #00fff5;
@@ -524,19 +785,26 @@
 
     <!-- 직업 선택 화면 -->
     <div id="classScreen" class="screen">
-        <div class="box">
-            <h1>⚔️ 직업 선택</h1>
-            <p style="color: #aaa; margin-bottom: 10px;">좌우로 넘겨 직업을 선택하세요</p>
-            <div class="class-swiper">
-                <div class="class-slider" id="classSlider">
-                    <!-- 직업 슬라이드가 동적으로 생성됩니다 -->
+        <div class="box" style="display:flex; gap:24px; align-items:flex-start; max-width:1000px; min-width:900px; padding:32px;">
+            <!-- 좌: 슬라이더 -->
+            <div style="flex:0 0 420px;">
+                <h1 style="margin-bottom:10px;">⚔️ 직업 선택</h1>
+                <p style="color: #aaa; margin-bottom: 10px; font-size:13px;">좌우로 넘겨 직업을 선택하세요</p>
+                <div class="class-swiper">
+                    <div class="class-slider" id="classSlider"></div>
+                    <div class="swiper-nav prev" id="swiperPrev">‹</div>
+                    <div class="swiper-nav next" id="swiperNext">›</div>
                 </div>
-                <div class="swiper-nav prev" id="swiperPrev">‹</div>
-                <div class="swiper-nav next" id="swiperNext">›</div>
+                <div class="swiper-dots" id="swiperDots"></div>
+                <button id="classSelectBtn" disabled style="margin-top:12px; width:100%;">선택 완료</button>
+                <p class="error" id="classError"></p>
             </div>
-            <div class="swiper-dots" id="swiperDots"></div>
-            <button id="classSelectBtn" disabled>선택 완료</button>
-            <p class="error" id="classError"></p>
+            <!-- 우: 툴팁 패널 -->
+            <div id="classTooltipPanel" style="flex:1; background:rgba(0,0,0,0.4); border:2px solid rgba(0,255,245,0.25); border-radius:14px; padding:22px; min-height:460px; text-align:left;">
+                <div id="classTooltipContent" style="color:#eee; font-size:14px; line-height:1.7;">
+                    <!-- JS로 채워짐 -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -549,6 +817,7 @@
                 <div class="room-empty">불러오는 중...</div>
             </div>
             <button class="room-create-btn" id="createRoomBtn">+ 새 방 만들기</button>
+            <button id="roomBackBtn" style="width:100%; margin: 8px 0; padding:12px; background:#444; color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer;">← 닉네임으로 돌아가기</button>
             <p class="error" id="roomError" style="margin-top:10px;"></p>
         </div>
     </div>
@@ -556,21 +825,60 @@
     <!-- 대기실 화면 -->
     <div id="lobbyScreen" class="screen">
         <div class="box">
-            <h1 id="lobbyTitle">🏠 대기실</h1>
-            <div class="lobby-info">
-                <p>접속 인원: <span id="lobbyPlayerCount">0</span>명</p>
-                <p id="hostIndicator" style="color: #ffd700; display: none;">👑 당신은 방장입니다</p>
+
+            <!-- 헤더 -->
+            <div id="lobbyHeaderBar">
+                <h1 id="lobbyTitle">🏠 대기실</h1>
+                <div id="lobbyHeaderMeta">
+                    <span>접속 인원: <strong id="lobbyPlayerCount">0</strong>명</span>
+                    <span id="hostIndicator">👑 방장</span>
+                </div>
             </div>
-            <h2>플레이어 목록</h2>
-            <div class="player-list" id="lobbyPlayerList">
-                <!-- 플레이어 목록이 여기 동적으로 추가됩니다 -->
+
+            <!-- 3분할 그리드: 스펠(좌) | 직업(중앙) | 명단(우) -->
+            <div id="lobbyGrid">
+
+                <!-- 좌: 스펠 선택 -->
+                <div id="lobbyLeft" class="lby-panel">
+                    <div class="lby-panel-head">✨ 스펠 선택 <span style="font-weight:normal;color:#555;letter-spacing:0;font-size:9px;">SHIFT</span></div>
+                    <div id="spellSwiper">
+                        <div id="spellSlider"></div>
+                        <div class="swiper-nav prev" id="spellSwiperPrev">‹</div>
+                        <div class="swiper-nav next" id="spellSwiperNext">›</div>
+                    </div>
+                    <div id="spellDots" class="swiper-dots"></div>
+                </div>
+
+                <!-- 중앙: 직업 선택 + 정보 통합 -->
+                <div id="lobbyCenter" class="lby-panel">
+                    <div class="lby-panel-head">⚔ 직업 선택</div>
+                    <div id="lobbyClassSwiper">
+                        <div id="lobbyClassSlider"></div>
+                        <div class="swiper-nav prev" id="lobbySwiperPrev">‹</div>
+                        <div class="swiper-nav next" id="lobbySwiperNext">›</div>
+                    </div>
+                    <div id="lobbyClassDots" class="swiper-dots"></div>
+                    <p class="error" id="lobbyClassError" style="text-align:center;padding:0 10px;font-size:12px;"></p>
+                    <div id="lobbyClassInfo"></div>
+                </div>
+
+                <!-- 우: 플레이어 명단 -->
+                <div id="lobbyRight" class="lby-panel">
+                    <div class="lby-panel-head">👥 플레이어 명단</div>
+                    <div class="player-list" id="lobbyPlayerList"></div>
+                </div>
+
             </div>
+
+            <!-- 하단 버튼 -->
             <div class="lobby-buttons">
+                <button id="lobbyBackBtn" style="background:#2a2a2a;color:#888;font-size:14px;padding:10px 18px;">← 방 목록</button>
                 <button id="readyBtn">준비 완료</button>
-                <button id="startBtn" style="display: none;" disabled>게임 시작</button>
-                <button id="practiceBtn" style="display: none; background: #9b59b6;">연습 모드</button>
+                <button id="startBtn" style="display:none;" disabled>게임 시작</button>
+                <button id="practiceBtn" style="display:none;background:#9b59b6;">연습 모드</button>
             </div>
-            <p class="error" id="lobbyError"></p>
+            <p class="error" id="lobbyError" style="text-align:center;margin-top:4px;"></p>
+
         </div>
     </div>
 
@@ -597,17 +905,17 @@
         <p>&#9000; WASD: 이동</p>
         <p>&#128432; 좌클릭: 기본 공격</p>
         <p>&#128432; 우클릭: <span id="skillActionLabel">스킬</span></p>
-        <p>Shift: 대쉬</p>
+        <p>Shift: <span id="spellActionLabel">스펠</span></p>
         <p style="color: #ff4444;">R 3초: 강제 종료</p>
         <hr style="border-color: #00fff5; margin: 10px 0;">
         <h3 style="color: #00fff5; margin-bottom: 8px;">쿨타임</h3>
         <div id="cooldownHUD">
             <div style="margin: 6px 0;">
                 <div style="display:flex; justify-content:space-between; font-size:13px;">
-                    <span>대쉬</span><span id="dashCoolText" style="color:#00fff5">준비</span>
+                    <span id="spellHudName" style="color:#ffaa00;">스펠</span><span id="spellHudCoolText" style="color:#ffaa00">준비</span>
                 </div>
                 <div style="background:#0f3460; border-radius:4px; height:8px; margin-top:3px;">
-                    <div id="dashCoolBar" style="height:8px; border-radius:4px; background:#00fff5; width:100%;"></div>
+                    <div id="spellHudCoolBar" style="height:8px; border-radius:4px; background:#ffaa00; width:100%;"></div>
                 </div>
             </div>
             <div style="margin: 6px 0;">
@@ -620,6 +928,8 @@
             </div>
         </div>
         <p id="spectateHint" style="display:none; color:#aaa; font-size:12px; margin-top:8px;">클릭으로 관전 전환</p>
+        <hr style="border-color: #444; margin: 10px 0;">
+        <button id="exitToLobbyBtn" style="display:block; width:100%; margin:0; padding:8px; background:#c0392b; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:bold; cursor:pointer; box-sizing:border-box;">나가기 (대기실)</button>
     </div>
 
     <!-- Firebase SDK -->
@@ -647,7 +957,7 @@
         let currentRoomId = null;
 
         // 방 기반 동적 refs (joinRoom 후 초기화)
-        let playersRef, gameStateRef, bulletsRef, particlesRef, swingsRef, stabsRef, smokesRef, hitEffectsRef, smithHammersRef, samuraiSlashesRef, parryHitsRef, jumongArrowsRef, muhuiZonesRef;
+        let playersRef, gameStateRef, bulletsRef, particlesRef, swingsRef, stabsRef, smokesRef, hitEffectsRef, smithHammersRef, samuraiSlashesRef, parryHitsRef, jumongArrowsRef, muhuiZonesRef, spellEffectsRef;
 
         function initRoomRefs(roomId) {
             const base = database.ref('rooms/' + roomId);
@@ -664,19 +974,74 @@
             parryHitsRef = base.child('parryHits');
             jumongArrowsRef = base.child('jumongArrows');
             muhuiZonesRef   = base.child('muhuiZones');
+            spellEffectsRef = base.child('spellEffects');
         }
+
+        // ========== 스펠 데이터 ==========
+        const SPELLS = {
+            dash: {
+                id: 'dash',
+                name: '대쉬',
+                icon: '💨',
+                description: '마우스 방향으로 빠르게 돌진. <span class="tt-buff">▲ 순간 이동</span>',
+                cooldown: 3,
+                color: '#00fff5'
+            },
+            heal: {
+                id: 'heal',
+                name: '재생',
+                icon: '💚',
+                description: '3초간 매초 체력 회복. <span class="tt-buff">♥ 초당 +5 HP × 3</span>',
+                cooldown: 15,
+                color: '#00ff88'
+            },
+            rage: {
+                id: 'rage',
+                name: '분노',
+                icon: '🔥',
+                description: '4초간 전투력 강화. <span class="tt-buff">▲ 공속 +1</span> <span class="tt-buff">▲ 공격력 +10</span>',
+                cooldown: 10,
+                color: '#ff4400'
+            },
+            fluid: {
+                id: 'fluid',
+                name: '유체화',
+                icon: '🌊',
+                description: '이속 급증 후 감속. <span class="tt-buff">▲ 이속 최대 +1.5</span> → 2초 유지 → 감소',
+                cooldown: 8,
+                color: '#44aaff'
+            },
+            hourglass: {
+                id: 'hourglass',
+                name: '모래시계',
+                icon: '⌛',
+                description: '3초간 완전 무적. <span class="tt-buff">🛡 무적</span> <span class="tt-debuff">✖ 행동 불가</span>',
+                cooldown: 20,
+                color: '#ffd700'
+            }
+        };
 
         // ========== 직업 데이터 ==========
         const CLASSES = {
             infantry: {
                 id: 'infantry',
                 name: '보병',
-                icon: '🛡️',
+                icon: '🔫',
                 description: '총으로 적을 제압하는 원거리 사격수',
                 stats: { moveSpeed: 5, attack: 20, attackSpeed: 1.125, health: 100 },
                 color: '#4ECDC4',
                 bulletSpeed: 22.5,
-                skill: { name: '연사', cooldown: 10, bullets: 10, bulletSpeed: 22.5, bulletInterval: 100 }
+                skill: { name: '연사', cooldown: 10, bullets: 10, bulletSpeed: 22.5, bulletInterval: 100 },
+                // 데미지 계수 (공격력 기준 %)
+                dmgCoeff: {
+                    basic:    { pct: 100, label: '기본 공격' },
+                    skill:    { pct: 100, label: '연사 (탄당)' }
+                },
+                tooltip: {
+                    basic:  '총알 1발 발사. <span class="tt-dmg">⚔ 공격력 100%</span>',
+                    skill:  '고정된 방향으로 총알 10발 연속 발사. <span class="tt-dmg">⚔ 탄당 100%</span>',
+                    skillName: '연사', skillCd: 10
+                }
             },
             warrior: {
                 id: 'warrior',
@@ -685,7 +1050,16 @@
                 description: '강인한 근접 전사',
                 stats: { moveSpeed: 4.5, attack: 20, attackSpeed: 1.5, health: 130 },
                 color: '#e74c3c',
-                skill: { name: '전투 태세', cooldown: 15 }
+                skill: { name: '전투 태세', cooldown: 15 },
+                dmgCoeff: {
+                    basic:    { pct: 100, label: '검 휘두르기' },
+                    spin:     { pct: 100, label: '회전 베기' }
+                },
+                tooltip: {
+                    basic:  '앞 <span class="tt-neut">↔ 180°</span> 범위를 검으로 휘두름. <span class="tt-dmg">⚔ 공격력 100%</span>',
+                    skill:  '<span class="tt-buff">▲ 이속 +25%</span> <span class="tt-buff">🛡 피해 감소 50%</span> 3초 지속. 다음 공격이 <span class="tt-neut">↺ 360° 회전 베기</span>로 변환. <span class="tt-dmg">⚔ 동일 피해</span>',
+                    skillName: '전투 태세', skillCd: 15
+                }
             },
             assassin: {
                 id: 'assassin',
@@ -694,7 +1068,15 @@
                 description: '은신으로 적을 기습하는 암살자',
                 stats: { moveSpeed: 5.5, attack: 30, attackSpeed: 2.5, health: 80 },
                 color: '#9b59b6',
-                skill: { name: '은신', cooldown: 8 }
+                skill: { name: '은신', cooldown: 8 },
+                dmgCoeff: {
+                    basic: { pct: 100, label: '단검 찌르기' }
+                },
+                tooltip: {
+                    basic:  '마우스 방향으로 단검을 찌름. <span class="tt-dmg">⚔ 공격력 100%</span>. 은신 중 공격 시 즉시 은신 해제.',
+                    skill:  '3초간 은신 진입. <span class="tt-buff">▲ 이속 ×2</span> <span class="tt-buff">👁 적에게 비가시</span>. 공격 또는 대쉬 시 자동 해제.',
+                    skillName: '은신', skillCd: 8
+                }
             },
             blacksmith: {
                 id: 'blacksmith',
@@ -703,7 +1085,15 @@
                 description: '강화를 거듭할수록 더욱 강해지는 전장의 대장장이',
                 stats: { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 },
                 color: '#e67e22',
-                skill: { name: '강화', cooldown: 4 }
+                skill: { name: '강화', cooldown: 4 },
+                dmgCoeff: {
+                    basic: { pct: 100, label: '망치 공격' }
+                },
+                tooltip: {
+                    basic:  '망치로 앞을 가격. <span class="tt-dmg">⚔ 공격력 100%</span>. 강화 횟수에 따라 공격력 점점 증가.',
+                    skill:  '2초 경직 후 능력치 영구 강화.<br><span class="tt-buff">▲ 이속 +0.5</span> <span class="tt-buff">▲ 공격력 +5</span> <span class="tt-buff">▲ 공속 +0.25</span> <span class="tt-buff">▲ 체력 +20</span>. 무한 중첩.',
+                    skillName: '강화', skillCd: 4
+                }
             },
             samurai: {
                 id: 'samurai',
@@ -712,7 +1102,17 @@
                 description: '날카로운 베기와 패링으로 적을 제압하는 검객',
                 stats: { moveSpeed: 4.5, attack: 20, attackSpeed: 1, health: 100 },
                 color: '#c0392b',
-                skill: { name: '패링', cooldown: 8 }
+                skill: { name: '패링', cooldown: 8 },
+                dmgCoeff: {
+                    thrust_min: { pct:  25, label: '차징 베기 (최소)' },
+                    thrust_max: { pct: 175, label: '차징 베기 (최대)' },
+                    counter:    { pct: 250, label: '패링 반격' }
+                },
+                tooltip: {
+                    basic:  '마우스 누르는 시간으로 차징. <span class="tt-dmg">⚔ 5~35 고정</span>. 차징이 길수록 <span class="tt-buff">▲ 돌진 거리·범위 증가</span>.',
+                    skill:  '1초간 패링 자세. 피격 시 <span class="tt-buff">🛡 피해 무효화</span> 후 <span class="tt-dmg">⚔ 50 고정 반격 돌진</span> 발동.',
+                    skillName: '패링', skillCd: 8
+                }
             },
             jumong: {
                 id: 'jumong',
@@ -722,16 +1122,33 @@
                 stats: { moveSpeed: 3.5, attack: 50, attackSpeed: 0.5, health: 80 },
                 color: '#27ae60',
                 bulletSpeed: 40,
-                skill: { name: '호크아이', cooldown: 8 }
+                skill: { name: '호크아이', cooldown: 8 },
+                dmgCoeff: {
+                    basic: { pct: 100, label: '화살' }
+                },
+                tooltip: {
+                    basic:  '맵 끝까지 날아가는 화살 1발. <span class="tt-dmg">⚔ 공격력 100% (기본 50)</span>. <span class="tt-neut">∞ 사거리 무제한</span>.',
+                    skill:  '4초간 <span class="tt-buff">▲ 시야 ×1.875 확대</span>. 먼 적을 더 넓게 관측 가능. 피해 변화 없음.',
+                    skillName: '호크아이', skillCd: 8
+                }
             },
             muhui: {
                 id: 'muhui',
                 name: '무희',
                 icon: '🌸',
                 description: '화려한 몸짓으로 벚꽃 비수를 퍼붓고 춤사위로 적의 발목을 잡는 속사 카이터',
-                stats: { moveSpeed: 5.5, attack: 10, attackSpeed: 3.5, health: 60 },
+                stats: { moveSpeed: 5.5, attack: 10, attackSpeed: 2.5, health: 60 },
                 color: '#e91e8c',
-                skill: { name: '꽃보라 춤', cooldown: 15 }
+                skill: { name: '꽃보라 춤', cooldown: 15 },
+                dmgCoeff: {
+                    basic:    { pct: 100, label: '벚꽃 비수 (탄당)' },
+                    zone_dps: { pct:   0, label: '장판 (초당 고정)' }   // 고정 10
+                },
+                tooltip: {
+                    basic:  '부채꼴 <span class="tt-neut">60°</span> 방향으로 비수 6발 동시 발사. <span class="tt-dmg">⚔ 탄당 100% (기본 10)</span>.',
+                    skill:  '발아래 반경 208px 장판 <span class="tt-neut">5초</span> 설치. 장판 위 적에게 <span class="tt-dmg">⚔ 초당 10 고정 피해</span>. 장판은 이동.',
+                    skillName: '꽃보라 춤', skillCd: 15
+                }
             }
         };
 
@@ -793,7 +1210,7 @@
         let muhuiZoneActive = false;
         let muhuiZoneEnd = 0;
         const MUHUI_ZONE_DURATION = 5000;       // 장판 지속 (ms)
-        const MUHUI_ZONE_RADIUS = 160;          // 장판 반경 (2배)
+        const MUHUI_ZONE_RADIUS = 208;          // 장판 반경 (기존 160의 130%)
         const MUHUI_ZONE_DPS = 10;              // 초당 피해
         const MUHUI_PETAL_RANGE = 440;          // 벚꽃비수 최대 사거리 (2배)
         const MUHUI_PETAL_COUNT = 6;            // 발사 수
@@ -932,6 +1349,32 @@
         const DASH_TOTAL_FRAMES = 12;   // 돌진 지속 프레임
         // DASH_SPEED는 이동속도 비례로 performDash에서 계산 (기준: moveSpeed 5 → speed 28)
 
+        // ========== 스펠 시스템 ==========
+        let mySpell = 'dash';           // 선택한 스펠 ID
+        let spellCooldownEnd = 0;       // 스펠 쿨타임 종료 시각
+
+        // 재생 상태
+        let healActive = false;
+        let healTicks = 0;
+        let healTimer = 0;
+
+        // 분노 상태
+        let rageActive = false;
+        let rageEnd = 0;
+
+        // 유체화 상태
+        let fluidActive = false;
+        let fluidEnd = 0;
+        let fluidPhase = 'ramp';  // 'ramp'|'hold'|'decay'
+        let fluidBonus = 0;       // 현재 속도 보너스 (0~1.5)
+
+        // 모래시계 상태
+        let hourglassActive = false;
+        let hourglassEnd = 0;
+
+        // 다른 플레이어 스펠 이펙트 상태
+        const playerSpellEffects = {}; // playerId → {spell, startedAt, data}
+
         // 파티클 (대쉬 먼지/잔상)
         const particles = [];
         const particleIds = new Set(); // 중복 수신 방지용
@@ -960,7 +1403,14 @@
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
             });
-            document.getElementById(screenId).classList.add('active');
+            // gameContainer는 .screen 클래스가 아니므로 별도 처리
+            const gameContainer = document.getElementById('gameContainer');
+            if (screenId === 'gameContainer') {
+                gameContainer.style.display = 'flex';
+            } else {
+                gameContainer.style.display = 'none';
+                document.getElementById(screenId).classList.add('active');
+            }
         }
 
         // ========== 닉네임 입력 ==========
@@ -972,8 +1422,8 @@
             }
             myNickname = nickname;
             document.getElementById('myNickname').textContent = myNickname;
-            showScreen('classScreen');
-            renderClassSelection();
+            showScreen('roomScreen');
+            startRoomListListener();
         });
 
         document.getElementById('nicknameInput').addEventListener('keypress', (e) => {
@@ -1071,15 +1521,309 @@
         function selectClassByIndex(index) {
             myClass = classIds[index];
             document.getElementById('classSelectBtn').disabled = false;
+            renderClassTooltip(myClass);
         }
 
-        document.getElementById('classSelectBtn').addEventListener('click', function() {
-            if (!myClass) {
-                document.getElementById('classError').textContent = '직업을 선택해주세요!';
-                return;
+        // ========== 직업 툴팁 패널 렌더링 ==========
+        function renderClassTooltip(classId) {
+            const panel = document.getElementById('classTooltipContent');
+            if (!panel) return;
+            const cd = CLASSES[classId];
+            if (!cd) return;
+
+            const stats = cd.stats;
+
+            // 데미지 계수 배지 HTML 빌더
+            function coeffBadge(coeff) {
+                if (!coeff) return '';
+                const isFixed = coeff.pct === 0;
+                const badge = isFixed
+                    ? `<span class="tooltip-coeff-badge fixed">고정</span>`
+                    : `<span class="tooltip-coeff-badge">${coeff.pct}%</span>`;
+                return `<div class="tooltip-coeff-row">${badge}<span class="tooltip-coeff-label">${coeff.label}</span></div>`;
             }
+
+            // 사무라이 전용: 계수 여러 개
+            let coeffHTML = '';
+            if (cd.dmgCoeff) {
+                Object.values(cd.dmgCoeff).forEach(c => {
+                    coeffHTML += coeffBadge(c);
+                });
+            }
+
+            panel.innerHTML = `
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:14px;">
+                    <span style="font-size:44px;">${cd.icon}</span>
+                    <div>
+                        <div style="font-size:22px; font-weight:bold; color:#00fff5;">${cd.name}</div>
+                        <div style="font-size:12px; color:#aaa; margin-top:2px;">${cd.description}</div>
+                    </div>
+                </div>
+
+                <div class="tooltip-section-title">📊 기본 스탯</div>
+                <div class="tooltip-stat-grid">
+                    <div class="tooltip-stat-item">⚡ 이동속도 <span>${stats.moveSpeed}</span></div>
+                    <div class="tooltip-stat-item">❤️ 체력 <span>${stats.health}</span></div>
+                    <div class="tooltip-stat-item">⚔️ 공격력 <span>${classId === 'samurai' ? '5~35' : stats.attack}</span></div>
+                    <div class="tooltip-stat-item">⏱️ 공격속도 <span>${stats.attackSpeed}/초</span></div>
+                </div>
+
+                <div class="tooltip-section-title">⚔️ 기본 공격</div>
+                <div class="tooltip-ability">
+                    <div class="tooltip-skill-header">
+                        <span class="tooltip-skill-name">기본 공격</span>
+                        <span class="tooltip-skill-cd" style="color:#00fff5;background:rgba(0,255,245,0.1);border-color:rgba(0,255,245,0.25);">⚡ ${stats.attackSpeed}/초</span>
+                    </div>
+                    ${coeffHTML}
+                    ${cd.tooltip ? cd.tooltip.basic : ''}
+                </div>
+
+                <div class="tooltip-section-title">✨ 특수 능력 (우클릭)</div>
+                <div class="tooltip-ability skill-block">
+                    <div class="tooltip-skill-header">
+                        <span class="tooltip-skill-name">${cd.tooltip && cd.tooltip.skillName ? cd.tooltip.skillName : (cd.skill ? cd.skill.name : '')}</span>
+                        <span class="tooltip-skill-cd">⏱ 쿨타임 ${cd.skill ? cd.skill.cooldown : '?'}초</span>
+                    </div>
+                    ${cd.tooltip ? cd.tooltip.skill : ''}
+                </div>
+            `;
+        }
+
+        // ========== 대기실 직업 선택 슬라이더 ==========
+        let lobbyClassIndex = 0;
+        let lobbyClassIds = [];
+
+        function renderLobbyClassSelection() {
+            const slider = document.getElementById('lobbyClassSlider');
+            const dotsContainer = document.getElementById('lobbyClassDots');
+            if (!slider || !dotsContainer) return;
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            lobbyClassIds = Object.keys(CLASSES);
+
+            lobbyClassIds.forEach((classId, index) => {
+                const cd = CLASSES[classId];
+                const slide = document.createElement('div');
+                slide.className = 'lby-class-slide';
+                slide.innerHTML = `
+                    <div class="lby-class-card">
+                        <div class="lcc-icon">${cd.icon}</div>
+                        <div class="lcc-name">${cd.name}</div>
+                    </div>`;
+                slider.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = 'swiper-dot' + (index === 0 ? ' active' : '');
+                dot.addEventListener('click', () => goToLobbySlide(index));
+                dotsContainer.appendChild(dot);
+            });
+
+            // 터치 스와이프
+            let tsX = 0;
+            const sw = document.getElementById('lobbyClassSwiper');
+            sw.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; }, {passive:true});
+            sw.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - tsX;
+                if (Math.abs(dx) > 40) {
+                    if (dx < 0 && lobbyClassIndex < lobbyClassIds.length - 1) goToLobbySlide(lobbyClassIndex + 1);
+                    else if (dx > 0 && lobbyClassIndex > 0) goToLobbySlide(lobbyClassIndex - 1);
+                }
+            }, {passive:true});
+
+            goToLobbySlide(lobbyClassIndex);
+            document.getElementById('lobbySwiperPrev').onclick = () => {
+                if (lobbyClassIndex > 0) goToLobbySlide(lobbyClassIndex - 1);
+            };
+            document.getElementById('lobbySwiperNext').onclick = () => {
+                if (lobbyClassIndex < lobbyClassIds.length - 1) goToLobbySlide(lobbyClassIndex + 1);
+            };
+        }
+
+        function goToLobbySlide(index) {
+            lobbyClassIndex = index;
+            const slider = document.getElementById('lobbyClassSlider');
+            if (slider) slider.style.transform = `translateX(-${index * 100}%)`;
+            document.querySelectorAll('#lobbyClassDots .swiper-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            myClass = lobbyClassIds[index];
+            renderLobbyClassInfo(myClass);
+            if (myPlayerId && playersRef) {
+                const cd = CLASSES[myClass];
+                playersRef.child(myPlayerId).update({
+                    class: myClass, className: cd.name, color: cd.color, stats: cd.stats
+                });
+            }
+            const err = document.getElementById('lobbyClassError');
+            if (err) err.textContent = '';
+        }
+
+        // 직업 정보 — 슬라이더 아래 패널에 렌더링
+        function renderLobbyClassInfo(classId) {
+            const panel = document.getElementById('lobbyClassInfo');
+            if (!panel) return;
+            const cd = CLASSES[classId];
+            if (!cd) return;
+
+            function coeffBadge(c) {
+                if (!c) return '';
+                const b = c.pct === 0
+                    ? `<span class="tooltip-coeff-badge fixed">고정</span>`
+                    : `<span class="tooltip-coeff-badge">${c.pct}%</span>`;
+                return `<div class="tooltip-coeff-row">${b}<span class="tooltip-coeff-label">${c.label}</span></div>`;
+            }
+            let coeffHTML = '';
+            if (cd.dmgCoeff) Object.values(cd.dmgCoeff).forEach(c => { coeffHTML += coeffBadge(c); });
+
+            panel.innerHTML = `
+                <div class="tooltip-stat-grid" style="padding:10px 14px 6px;">
+                    <div class="tooltip-stat-item">⚡ 이동 <span>${cd.stats.moveSpeed}</span></div>
+                    <div class="tooltip-stat-item">❤️ 체력 <span>${cd.stats.health}</span></div>
+                    <div class="tooltip-stat-item">⚔️ 공격 <span>${classId==='samurai'?'5~35':cd.stats.attack}</span></div>
+                    <div class="tooltip-stat-item">⏱️ 속도 <span>${cd.stats.attackSpeed}/s</span></div>
+                </div>
+                <div style="padding:0 14px 12px;">
+                    <div class="tooltip-section-title">기본 공격</div>
+                    <div class="tooltip-ability">
+                        <div class="tooltip-skill-header">
+                            <span class="tooltip-skill-name">기본 공격</span>
+                            <span class="tooltip-skill-cd" style="color:#00fff5;background:rgba(0,255,245,0.1);border-color:rgba(0,255,245,0.25);">⚡ ${cd.stats.attackSpeed}/초</span>
+                        </div>
+                        ${coeffHTML}${cd.tooltip ? cd.tooltip.basic : ''}
+                    </div>
+                    <div class="tooltip-section-title">스킬 (우클릭)</div>
+                    <div class="tooltip-ability skill-block">
+                        <div class="tooltip-skill-header">
+                            <span class="tooltip-skill-name">${cd.tooltip && cd.tooltip.skillName ? cd.tooltip.skillName : (cd.skill ? cd.skill.name : '')}</span>
+                            <span class="tooltip-skill-cd">⏱ ${cd.skill ? cd.skill.cooldown : '?'}초</span>
+                        </div>
+                        ${cd.tooltip ? cd.tooltip.skill : ''}
+                    </div>
+                </div>`;
+        }
+
+        // ========== 방 목록 뒤로가기 ==========
+        document.getElementById('lobbyBackBtn').addEventListener('click', () => {
+            if (myPlayerId && playersRef) {
+                playersRef.child(myPlayerId).remove().then(() => {
+                    if (currentRoomId) {
+                        playersRef.once('value', snap => {
+                            const rem = snap.val();
+                            if (!rem || Object.keys(rem).length === 0) {
+                                database.ref('rooms/' + currentRoomId).remove();
+                            } else if (isHost) {
+                                // 방장이 나가면 timestamp 기준 최선임자에게 방장 이전
+                                const arr = Object.values(rem);
+                                arr.sort((a, b) => (a.timestamp||0) - (b.timestamp||0));
+                                const newHost = arr[0];
+                                if (newHost) {
+                                    gameStateRef.update({ hostId: newHost.id, hostName: newHost.nickname });
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            playersRef && playersRef.off();
+            gameStateRef && gameStateRef.off();
+            myPlayerId = null; isHost = false; isReady = false; currentRoomId = null;
+            document.getElementById('readyBtn').textContent = '준비 완료';
+            document.getElementById('readyBtn').style.background = '#00fff5';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('practiceBtn').style.display = 'none';
+            document.getElementById('hostIndicator').style.display = 'none';
             showScreen('roomScreen');
             startRoomListListener();
+        });
+
+        // ========== 스펠 스와이퍼 ==========
+        let spellIndex = 0;
+        const spellIds = Object.keys(SPELLS);
+
+        function renderSpellSelection() { renderSpellSwiper(); }
+
+        function renderSpellSwiper() {
+            const slider = document.getElementById('spellSlider');
+            const dotsContainer = document.getElementById('spellDots');
+            if (!slider || !dotsContainer) return;
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            spellIds.forEach((spellId, index) => {
+                const sp = SPELLS[spellId];
+                const slide = document.createElement('div');
+                slide.className = 'lby-spell-slide';
+                const card = document.createElement('div');
+                card.className = 'lby-spell-card' + (mySpell === spellId ? ' selected' : '');
+                card.innerHTML = `
+                    <div class="sc-icon">${sp.icon}</div>
+                    <div class="sc-name">${sp.name}</div>
+                    <div class="sc-cd">⏱ 쿨타임 ${sp.cooldown}초</div>
+                    <div class="sc-desc">${sp.description}</div>`;
+                card.addEventListener('click', () => {
+                    mySpell = spellId;
+                    if (myPlayerId && playersRef) {
+                        playersRef.child(myPlayerId).update({ spell: mySpell });
+                    }
+                    spellCooldownEnd = 0;
+                    document.querySelectorAll('.lby-spell-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                });
+                slide.appendChild(card);
+                slider.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = 'swiper-dot' + (index === 0 ? ' active' : '');
+                dot.addEventListener('click', () => goToSpellSlide(index));
+                dotsContainer.appendChild(dot);
+            });
+
+            // 터치 스와이프
+            let tsX = 0;
+            const sw = document.getElementById('spellSwiper');
+            sw.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; }, {passive:true});
+            sw.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - tsX;
+                if (Math.abs(dx) > 40) {
+                    if (dx < 0 && spellIndex < spellIds.length - 1) goToSpellSlide(spellIndex + 1);
+                    else if (dx > 0 && spellIndex > 0) goToSpellSlide(spellIndex - 1);
+                }
+            }, {passive:true});
+
+            document.getElementById('spellSwiperPrev').onclick = () => {
+                if (spellIndex > 0) goToSpellSlide(spellIndex - 1);
+            };
+            document.getElementById('spellSwiperNext').onclick = () => {
+                if (spellIndex < spellIds.length - 1) goToSpellSlide(spellIndex + 1);
+            };
+
+            const curIdx = spellIds.indexOf(mySpell);
+            spellIndex = curIdx >= 0 ? curIdx : 0;
+            goToSpellSlide(spellIndex);
+        }
+
+        function goToSpellSlide(index) {
+            spellIndex = index;
+            const slider = document.getElementById('spellSlider');
+            if (slider) slider.style.transform = `translateX(-${index * 100}%)`;
+            document.querySelectorAll('#spellDots .swiper-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            // 화살표로 넘기는 것만으로도 스펠 자동 선택
+            mySpell = spellIds[index];
+            if (myPlayerId && playersRef) {
+                playersRef.child(myPlayerId).update({ spell: mySpell });
+            }
+            spellCooldownEnd = 0;
+            document.querySelectorAll('.lby-spell-card').forEach((c, i) => {
+                c.classList.toggle('selected', i === index);
+            });
+        }
+
+        // ========== 방 목록 뒤로가기 (닉네임 화면으로) ==========
+        document.getElementById('roomBackBtn').addEventListener('click', () => {
+            stopRoomListListener();
+            showScreen('nicknameScreen');
         });
 
         // ========== 방 목록 실시간 리스너 ==========
@@ -1093,6 +1837,7 @@
 
                 const lobbyRooms = Object.entries(allRooms).filter(([, r]) =>
                     r.gameState && r.gameState.status === GAME_STATUS.LOBBY
+                    && r.players && Object.keys(r.players).length > 0
                 );
 
                 if (lobbyRooms.length === 0) {
@@ -1218,7 +1963,12 @@
                     return;
                 }
                 
-                // 대기실로 입장
+                // 대기실로 입장 - 직업이 없으면 첫 번째 직업으로 기본 설정
+                if (!myClass) {
+                    lobbyClassIds = Object.keys(CLASSES);
+                    lobbyClassIndex = 0;
+                    myClass = lobbyClassIds[0];
+                }
                 const classData = CLASSES[myClass];
                 const playerData = {
                     id: myPlayerId,
@@ -1227,6 +1977,7 @@
                     className: classData.name,
                     stats: classData.stats,
                     color: classData.color,
+                    spell: mySpell,
                     ready: false,
                     x: 0,
                     y: 0,
@@ -1253,6 +2004,9 @@
                 }
                 
                 showScreen('lobbyScreen');
+                // 대기실 직업 선택 UI 렌더링
+                renderLobbyClassSelection();
+                renderSpellSelection();
                 // 대기실 타이틀에 방장 이름 표시
                 gameStateRef.once('value', (s) => {
                     const st = s.val();
@@ -1285,15 +2039,23 @@
                     playerDiv.className = 'lobby-player';
                     if (player.ready) playerDiv.classList.add('ready');
                     
+                    const spellBadge = player.spell && SPELLS[player.spell]
+                        ? `<span class="lobby-player-spell-badge">${SPELLS[player.spell].icon} ${SPELLS[player.spell].name}</span>`
+                        : `<span style="color:#444;font-size:10px;">—</span>`;
                     playerDiv.innerHTML = `
                         <div class="lobby-player-info">
-                            <div class="player-color" style="background: ${player.color}"></div>
-                            <strong>${player.nickname}</strong>
-                            ${id === myPlayerId ? '(나)' : ''}
-                            <span class="lobby-player-class">${player.className}</span>
+                            <div class="lp-name-row">
+                                <div class="player-color" style="background:${player.color};"></div>
+                                <span>${player.nickname}</span>
+                                ${id === myPlayerId ? '<span style="color:#444;font-size:10px;font-weight:normal;">(나)</span>' : ''}
+                            </div>
+                            <div class="lp-badge-row">
+                                <span class="lobby-player-class">${CLASSES[player.class] ? CLASSES[player.class].icon + ' ' : ''}${player.className}</span>
+                                ${spellBadge}
+                            </div>
                         </div>
                         <span class="lobby-player-status ${player.ready ? 'ready' : 'waiting'}">
-                            ${player.ready ? '✓ 준비완료' : '대기중'}
+                            ${player.ready ? '✓ 준비' : '대기'}
                         </span>
                     `;
                     listDiv.appendChild(playerDiv);
@@ -1308,10 +2070,18 @@
                 }
             });
 
-            // ★ 파티원용: gameState 변경 감지 → PLAYING이 되면 게임 화면으로 전환
+            // ★ 파티원용: gameState 변경 감지 → PLAYING 전환 & 방장 승계 UI
             gameStateRef.on('value', (snapshot) => {
                 const state = snapshot.val();
                 if (!state) return;
+                // 방장 승계: hostId가 내 ID로 변경되면 방장 UI 활성화
+                if (state.hostId === myPlayerId && !isHost) {
+                    isHost = true;
+                    document.getElementById('hostIndicator').style.display = 'block';
+                    document.getElementById('startBtn').style.display = 'inline-block';
+                    document.getElementById('practiceBtn').style.display = 'inline-block';
+                    document.getElementById('lobbyTitle').textContent = `🏠 ${myNickname}의 방`;
+                }
                 if (state.status === GAME_STATUS.PLAYING && gameStatus !== GAME_STATUS.PLAYING) {
                     // 스폰 좌표가 Firebase에 반영될 때까지 잠깐 대기 후 시작
                     playersRef.child(myPlayerId).once('value', (snap) => {
@@ -1333,6 +2103,10 @@
 
         // ========== 준비 완료 버튼 ==========
         document.getElementById('readyBtn').addEventListener('click', () => {
+            if (!myClass) {
+                document.getElementById('lobbyClassError').textContent = '직업을 먼저 선택해주세요!';
+                return;
+            }
             isReady = !isReady;
             playersRef.child(myPlayerId).update({ ready: isReady });
             document.getElementById('readyBtn').textContent = isReady ? '준비 취소' : '준비 완료';
@@ -1396,7 +2170,18 @@
             if (gameStatus === GAME_STATUS.PLAYING) return;
             gameStatus = GAME_STATUS.PLAYING;
 
-            // 대기실 리스너 해제
+            // ★ Firebase에서 내 최신 스펠 동기화 (대기실에서 바꾼 스펠 반영)
+            playersRef.child(myPlayerId).once('value', (snap) => {
+                const me = snap.val();
+                if (me && me.spell && SPELLS[me.spell]) {
+                    mySpell = me.spell;
+                }
+                spellCooldownEnd = 0; // 게임 시작 시 쿨타임 초기화
+                _startGameInner();
+            });
+        }
+
+        function _startGameInner() {
             playersRef.off();
             gameStateRef.off();
 
@@ -1530,6 +2315,63 @@
                     showVictoryScreen(winner.nickname);
                 }
             });
+
+            // 나가기 버튼 (대기실로)
+            document.getElementById('exitToLobbyBtn').onclick = () => {
+                if (!confirm('게임을 나가고 대기실로 돌아갈까요?')) return;
+
+                // ★ 리스너를 먼저 해제해야 location.reload() 트리거 방지
+                playersRef && playersRef.off();
+                gameStateRef && gameStateRef.off();
+                bulletsRef && bulletsRef.off();
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+                canvas.removeEventListener('mousemove', handleMouseMove);
+                canvas.removeEventListener('mousedown', handleMouseDown);
+                canvas.removeEventListener('mouseup', handleMouseUp);
+                canvas.removeEventListener('contextmenu', handleRightClick);
+
+                // 내 데이터 삭제 (연습모드는 방 전체 삭제)
+                if (gameMode === GAME_MODE.PRACTICE && currentRoomId) {
+                    database.ref('rooms/' + currentRoomId).remove();
+                } else if (myPlayerId && playersRef) {
+                    playersRef.child(myPlayerId).remove();
+                    // 방장이라도 방은 유지 (남은 플레이어에게 방장 승계됨)
+                }
+
+                // 상태 초기화 (닉네임·스펠·직업은 유지)
+                const savedClass = myClass;
+                const savedSpell = mySpell;
+                currentRoomId = null;
+                myPlayerId = null;
+                isHost = false;
+                isReady = false;
+                isSpectating = false;
+                isAlive = true;
+                gameStatus = GAME_STATUS.LOBBY;
+                lobbyClassIndex = 0;
+                myClass = savedClass;
+                mySpell = savedSpell;
+                // 스펠 상태 리셋
+                healActive = false; healTicks = 0;
+                rageActive = false; rageEnd = 0;
+                fluidActive = false; fluidBonus = 0;
+                hourglassActive = false; hourglassEnd = 0;
+                spellCooldownEnd = 0;
+                isDashing = false; dashRemainFrames = 0;
+
+                document.getElementById('info').style.display = 'none';
+                document.getElementById('playerList').style.display = 'none';
+                document.getElementById('controls').style.display = 'none';
+                document.getElementById('readyBtn').textContent = '준비 완료';
+                document.getElementById('readyBtn').style.background = '#00fff5';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('practiceBtn').style.display = 'none';
+                document.getElementById('hostIndicator').style.display = 'none';
+
+                showScreen('roomScreen');
+                startRoomListListener();
+            };
 
             // 게임 루프 시작
             gameLoop();
@@ -1704,6 +2546,18 @@
             samuraiSlashesRef.on('child_removed', (snapshot) => {
                 delete playerSamuraiSlashes[snapshot.key];
             });
+
+            // ── 스펠 이펙트 수신 ──
+            spellEffectsRef.on('child_added', (snapshot) => {
+                const ef = snapshot.val();
+                if (!ef || ef.ownerId === myPlayerId) return;
+                if (Date.now() - ef.createdAt > 5000) return;
+                playerSpellEffects[ef.ownerId] = { ...ef, localStartedAt: Date.now() };
+            });
+            spellEffectsRef.on('child_removed', (snapshot) => {
+                const ef = snapshot.val();
+                if (ef) delete playerSpellEffects[ef.ownerId];
+            });
         }
 
         // ========== 승리 화면 ==========
@@ -1727,62 +2581,104 @@
                 justify-content: center; align-items: center; z-index: 9999;
             `;
             overlay.innerHTML = `
-                <div style="text-align:center;">
+                <div style="text-align:center; pointer-events: auto;">
                     <div style="font-size: 56px; font-weight: bold; color: ${isWinner ? '#ffd700' : '#00fff5'};
                         text-shadow: 0 0 30px ${isWinner ? '#ffd700' : '#00fff5'}; margin-bottom: 30px;">
                         ${msg}
                     </div>
-                    <div style="color: #aaa; font-size: 18px; margin-bottom: 40px;">잠시 후 직업 선택 화면으로 이동합니다...</div>
+                    <div id="victoryCountdown" style="color: #aaa; font-size: 18px; margin-bottom: 40px;">5초 후 자동으로 방 목록으로 이동합니다...</div>
                     <div style="display:flex; gap: 20px; justify-content: center;">
                         <button id="victoryReplayBtn" style="padding:15px 35px; background:#00fff5; color:#16213e;
-                            border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer;">
-                            바로 이동
+                            border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; pointer-events: auto; z-index: 10000; position: relative;">
+                            즉시 방 목록으로
                         </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(overlay);
 
-            // 바로 이동 버튼
-            document.getElementById('victoryReplayBtn').addEventListener('click', () => goToClassSelectAndLobby());
+            // 카운트다운 표시
+            let remaining = 5;
+            const countdownEl = document.getElementById('victoryCountdown');
+            const countdownInterval = setInterval(() => {
+                remaining--;
+                if (remaining > 0) {
+                    countdownEl.textContent = `${remaining}초 후 자동으로 방 목록으로 이동합니다...`;
+                } else {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
+            // 즉시 이동 버튼
+            document.getElementById('victoryReplayBtn').addEventListener('click', () => {
+                clearInterval(countdownInterval);
+                clearTimeout(autoTimer);
+                goToRoomList();
+            });
 
             // 5초 후 자동 이동
-            let autoTimer = setTimeout(() => goToClassSelectAndLobby(), 5000);
+            let autoTimer = setTimeout(() => {
+                clearInterval(countdownInterval);
+                goToRoomList();
+            }, 5000);
 
-            function goToClassSelectAndLobby() {
-                clearTimeout(autoTimer);
-                // 방 삭제
-                if (currentRoomId && isHost) database.ref('rooms/' + currentRoomId).remove();
+            function goToRoomList() {
+                // ★ 리스너 먼저 해제 (location.reload 트리거 방지)
+                playersRef && playersRef.off();
+                gameStateRef && gameStateRef.off();
+                bulletsRef && bulletsRef.off();
 
-                // 상태 리셋 (닉네임은 유지)
+                // 내 플레이어 데이터 삭제 (방은 남겨둬서 남은 사람들 자동 이동 가능)
+                if (myPlayerId && playersRef) {
+                    playersRef.child(myPlayerId).remove();
+                }
+
+                // 키/마우스 이벤트 해제
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+                canvas.removeEventListener('mousemove', handleMouseMove);
+                canvas.removeEventListener('mousedown', handleMouseDown);
+                canvas.removeEventListener('mouseup', handleMouseUp);
+                canvas.removeEventListener('contextmenu', handleRightClick);
+
+                // 상태 초기화 (닉네임·직업·스펠 유지)
+                const savedClass = myClass;
+                const savedSpell = mySpell;
                 currentRoomId = null;
+                myPlayerId = null;
                 isHost = false;
                 isReady = false;
                 isSpectating = false;
                 isAlive = true;
                 gameStatus = GAME_STATUS.LOBBY;
+                lobbyClassIndex = 0;
+                myClass = savedClass;
+                mySpell = savedSpell;
+                healActive = false; healTicks = 0;
+                rageActive = false; rageEnd = 0;
+                fluidActive = false; fluidBonus = 0;
+                hourglassActive = false; hourglassEnd = 0;
+                spellCooldownEnd = 0;
+                isDashing = false; dashRemainFrames = 0;
 
                 // 오버레이 제거
                 overlay.remove();
 
-                // 직업 선택 화면으로 (닉네임 유지)
-                showScreen('classScreen');
-                renderClassSelection();
+                // 게임 HUD 숨기기
+                document.getElementById('info').style.display = 'none';
+                document.getElementById('playerList').style.display = 'none';
+                document.getElementById('controls').style.display = 'none';
 
-                // 직업 선택 후 방 선택 없이 바로 새 방 생성해서 대기실 진입하도록
-                // classSelectBtn 이벤트를 임시 교체
-                const origBtn = document.getElementById('classSelectBtn');
-                const newBtn = origBtn.cloneNode(true);
-                origBtn.parentNode.replaceChild(newBtn, origBtn);
-                newBtn.addEventListener('click', function() {
-                    if (!myClass) {
-                        document.getElementById('classError').textContent = '직업을 선택해주세요!';
-                        return;
-                    }
-                    // 새 방 생성 후 바로 대기실
-                    const roomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-                    joinRoom(roomId, true);
-                });
+                // 준비 버튼 초기화
+                document.getElementById('readyBtn').textContent = '준비 완료';
+                document.getElementById('readyBtn').style.background = '#00fff5';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('practiceBtn').style.display = 'none';
+                document.getElementById('hostIndicator').style.display = 'none';
+
+                // 방 목록으로
+                showScreen('roomScreen');
+                startRoomListListener();
             }
         }
 
@@ -1800,16 +2696,11 @@
                 dummyFloatingNums = [];
             }
             
-            // Shift 대쉬
+            // Shift → 스펠 사용
             if (key === 'shift' && !keys['shift_pressed']) {
                 keys['shift_pressed'] = true;
-                if (!isSpectating && isAlive) {
-                    // 어쌔신 은신 중 대쉬 시 은신 해제
-                    if (myClass === 'assassin' && assassinStealthActive) {
-                        assassinStealthActive = false;
-                        playersRef.child(myPlayerId).update({ stealthed: false });
-                    }
-                    performDash();
+                if (!isSpectating && isAlive && !hourglassActive) {
+                    performSpell();
                 }
             }
             
@@ -1934,7 +2825,10 @@
 
             // 사무라이가 아닌 직업은 기존 클릭 로직 그대로
             const stats = CLASSES[myClass].stats;
-            const attackCooldown = 1000 / stats.attackSpeed;
+            // 모래시계 중 공격 불가
+            if (hourglassActive) return;
+            const rageAtkSpeed = rageActive ? 1 : 0;
+            const attackCooldown = 1000 / (stats.attackSpeed + rageAtkSpeed);
             if (now - lastAttackTime < attackCooldown) return;
 
             if (myClass === 'warrior') {
@@ -2295,16 +3189,24 @@
         function updateCooldownHUD() {
             const now = Date.now();
 
-            // 대쉬 쿨타임
-            const dashTotal = DASH_COOLDOWN * 1000;
-            const dashRemaining = Math.max(0, dashCooldownEnd - now);
-            const dashPct = dashRemaining === 0 ? 100 : Math.round((1 - dashRemaining / dashTotal) * 100);
-            const dashBar = document.getElementById('dashCoolBar');
-            const dashText = document.getElementById('dashCoolText');
-            if (dashBar && dashText) {
-                dashBar.style.width = dashPct + '%';
-                dashText.textContent = dashRemaining === 0 ? '준비' : (dashRemaining / 1000).toFixed(1) + 's';
-                dashText.style.color = dashRemaining === 0 ? '#00fff5' : '#aaa';
+            // 스펠 쿨타임
+            const spell = SPELLS[mySpell];
+            const spellTotal = spell ? spell.cooldown * 1000 : 3000;
+            const spellRemaining = Math.max(0, spellCooldownEnd - now);
+            const spellPct = spellRemaining === 0 ? 100 : Math.round((1 - spellRemaining / spellTotal) * 100);
+            const spellHudBar  = document.getElementById('spellHudCoolBar');
+            const spellHudText = document.getElementById('spellHudCoolText');
+            const spellHudName = document.getElementById('spellHudName');
+            const spellActionLbl = document.getElementById('spellActionLabel');
+            if (spell) {
+                if (spellHudName) spellHudName.textContent = spell.icon + ' ' + spell.name;
+                if (spellActionLbl) spellActionLbl.textContent = spell.name;
+            }
+            if (spellHudBar && spellHudText) {
+                spellHudBar.style.width = spellPct + '%';
+                spellHudText.textContent = spellRemaining === 0 ? '준비' : (spellRemaining / 1000).toFixed(1) + 's';
+                spellHudText.style.color = spellRemaining === 0 ? '#ffaa00' : '#aaa';
+                spellHudBar.style.background = spell ? spell.color : '#ffaa00';
             }
 
             // 스킬 쿨타임 + 스킬명 동적 표시
@@ -2324,6 +3226,180 @@
                 skillText.textContent = skillRemaining === 0 ? '준비' : (skillRemaining / 1000).toFixed(1) + 's';
                 skillText.style.color = skillRemaining === 0 ? '#00ff88' : '#aaa';
                 skillBar.style.background = skillRemaining === 0 ? '#00ff88' : '#ff4444';
+            }
+        }
+
+        // ========== 스펠 시스템 ==========
+        function performSpell() {
+            if (!myPlayerId || !players[myPlayerId]) return;
+            const now = Date.now();
+            const spell = SPELLS[mySpell];
+            if (!spell) return;
+            if (now < spellCooldownEnd) return;
+
+            spellCooldownEnd = now + spell.cooldown * 1000;
+
+            if (mySpell === 'dash') {
+                _castDash();
+            } else if (mySpell === 'heal') {
+                _castHeal(now);
+            } else if (mySpell === 'rage') {
+                _castRage(now);
+            } else if (mySpell === 'fluid') {
+                _castFluid(now);
+            } else if (mySpell === 'hourglass') {
+                _castHourglass(now);
+            }
+
+            // Firebase에 스펠 이펙트 공유
+            const myPlayer = players[myPlayerId];
+            const effectData = {
+                id: myPlayerId + '_spell_' + now,
+                ownerId: myPlayerId,
+                spell: mySpell,
+                x: myPlayer ? myPlayer.x + PLAYER_SIZE/2 : 0,
+                y: myPlayer ? myPlayer.y + PLAYER_SIZE/2 : 0,
+                createdAt: now,
+                color: spell.color
+            };
+            spellEffectsRef.child(myPlayerId).set(effectData);
+            setTimeout(() => spellEffectsRef.child(myPlayerId).remove(), 4000);
+
+            // 로컬에도 이펙트 등록
+            playerSpellEffects[myPlayerId] = { ...effectData, localStartedAt: now };
+        }
+
+        // ── 대쉬 캐스팅 ──
+        function _castDash() {
+            if (isDashing) return;
+            const myPlayer = players[myPlayerId];
+            const worldMouseX = mouseX + cameraX;
+            const worldMouseY = mouseY + cameraY;
+            const dx = worldMouseX - (myPlayer.x + PLAYER_SIZE / 2);
+            const dy = worldMouseY - (myPlayer.y + PLAYER_SIZE / 2);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return;
+            // 어쌔신 은신 중 대쉬 시 은신 해제
+            if (myClass === 'assassin' && assassinStealthActive) {
+                assassinStealthActive = false;
+                playersRef.child(myPlayerId).update({ stealthed: false });
+            }
+            const baseSpeed = CLASSES[myClass].stats.moveSpeed;
+            const effectiveSpeed = (myClass === 'assassin' && assassinStealthActive)
+                ? baseSpeed * 2 : baseSpeed;
+            const DASH_SPEED = effectiveSpeed * 5.6;
+            dashVx = (dx / dist) * DASH_SPEED;
+            dashVy = (dy / dist) * DASH_SPEED;
+            dashRemainFrames = DASH_TOTAL_FRAMES;
+            isDashing = true;
+        }
+
+        // ── 재생 캐스팅 ──
+        function _castHeal(now) {
+            healActive = true;
+            healTicks = 0;
+            healTimer = now;
+        }
+
+        // ── 분노 캐스팅 ──
+        function _castRage(now) {
+            rageActive = true;
+            rageEnd = now + 4000;
+            playersRef.child(myPlayerId).update({ rageActive: true });
+        }
+
+        // ── 유체화 캐스팅 ──
+        function _castFluid(now) {
+            fluidActive = true;
+            fluidPhase = 'ramp';
+            fluidEnd = now + 4000; // 총 4초 (1+2+1)
+            fluidBonus = 0;
+            playersRef.child(myPlayerId).update({ fluidActive: true });
+        }
+
+        // ── 모래시계 캐스팅 ──
+        function _castHourglass(now) {
+            hourglassActive = true;
+            hourglassEnd = now + 3000;
+            playersRef.child(myPlayerId).update({ hourglassActive: true });
+        }
+
+        // ========== 스펠 업데이트 (게임 루프에서 매 프레임 호출) ==========
+        function updateSpells() {
+            if (!myPlayerId || !players[myPlayerId] || !isAlive) return;
+            const now = Date.now();
+            const myPlayer = players[myPlayerId];
+
+            // ── 재생 ──
+            if (healActive && healTicks < 3) {
+                if (now - healTimer >= 1000) {
+                    healTimer = now;
+                    healTicks++;
+                    const maxHp = myPlayer.maxHealth || CLASSES[myClass].stats.health;
+                    const newHp = Math.min(maxHp, myPlayer.health + 5);
+                    myPlayer.health = newHp;
+                    playersRef.child(myPlayerId).update({ health: newHp });
+                    // 초록 힐 파티클
+                    _spawnSpellParticles(myPlayer.x + PLAYER_SIZE/2, myPlayer.y + PLAYER_SIZE/2, '#00ff88', 8);
+                    if (healTicks >= 3) healActive = false;
+                }
+            }
+
+            // ── 분노 ──
+            if (rageActive && now > rageEnd) {
+                rageActive = false;
+                playersRef.child(myPlayerId).update({ rageActive: false });
+            }
+
+            // ── 유체화 ──
+            if (fluidActive) {
+                const elapsed = now - (fluidEnd - 4000);
+                if (elapsed < 1000) {
+                    fluidPhase = 'ramp';
+                    fluidBonus = 1.5 * (elapsed / 1000);
+                } else if (elapsed < 3000) {
+                    fluidPhase = 'hold';
+                    fluidBonus = 1.5;
+                } else if (elapsed < 4000) {
+                    fluidPhase = 'decay';
+                    fluidBonus = 1.5 * (1 - (elapsed - 3000) / 1000);
+                } else {
+                    fluidActive = false;
+                    fluidBonus = 0;
+                    playersRef.child(myPlayerId).update({ fluidActive: false });
+                }
+            }
+
+            // ── 모래시계 ──
+            if (hourglassActive && now > hourglassEnd) {
+                hourglassActive = false;
+                playersRef.child(myPlayerId).update({ hourglassActive: false });
+            }
+        }
+
+        // ── 스펠 파티클 (로컬+Firebase) ──
+        function _spawnSpellParticles(cx, cy, color, count) {
+            const now = Date.now();
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2.5 + 0.5;
+                const p = {
+                    id: myPlayerId + '_sp_' + now + '_' + i,
+                    ownerId: myPlayerId,
+                    x: cx + (Math.random()-0.5)*10,
+                    y: cy + (Math.random()-0.5)*10,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1,
+                    radius: Math.random() * 5 + 2,
+                    life: 1.0,
+                    decay: 0.04 + Math.random() * 0.03,
+                    createdAt: now,
+                    color
+                };
+                particleIds.add(p.id);
+                particles.push(p);
+                particlesRef.child(p.id).set(p);
+                setTimeout(() => particlesRef.child(p.id).remove(), 1500);
             }
         }
 
@@ -2865,7 +3941,7 @@
                     const dist = Math.sqrt((myPlayer.x + PLAYER_SIZE/2 - tx)**2 + (myPlayer.y + PLAYER_SIZE/2 - ty)**2);
                     if (dist < PLAYER_SIZE + 10) {
                         samuraiCounterHitIds.add(id);
-                        dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty);
+                        dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty, true);
                     }
                 }
 
@@ -2884,7 +3960,7 @@
                         const dist = Math.sqrt((cx - tx)**2 + (cy - ty)**2);
                         if (dist < COUNTER_BURST_RADIUS) {
                             samuraiCounterHitIds.add(id);
-                            dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty);
+                            dealDamage(id, SAMURAI_COUNTER_DMG, tx, ty, true);
                         }
                     }
                     // 피해 범위 원 표시 (Firebase로 모든 플레이어에게 공유)
@@ -2999,9 +4075,12 @@
         // 모든 공격은 반드시 이 함수를 통해 피해를 줌.
         // 패링은 여기서 HP를 건드리기 전에 먼저 차단 → 딸피여도 안전.
         // 향후 직업 추가 시 dealDamage만 쓰면 자동으로 패링 적용됨.
-        function dealDamage(targetId, dmg, hitX, hitY) {
+        function dealDamage(targetId, dmg, hitX, hitY, isFixedDmg = false) {
             const target = players[targetId];
             if (!target || target.isSpectator || target.health <= 0) return;
+
+            // 분노 공격력 보너스 (고정 피해 제외 — 장판, 패링 반격 등)
+            const actualDmg = (rageActive && !isFixedDmg) ? dmg + 10 : dmg;
 
             // ── 사무라이 패링: HP 건드리기 전에 먼저 차단 ──
             if (target.samuraiParrying) {
@@ -3014,19 +4093,18 @@
             // ── 허수아비 피격: 데미지/DPS 측정 ──
             if (targetId === DUMMY_ID && gameMode === GAME_MODE.PRACTICE) {
                 const now = Date.now();
-                dummyDmgTotal += dmg;
-                dummyLastHit = dmg;
-                dummyDmgWindow.push({ time: now, dmg });
-                // 플로팅 데미지 숫자 생성
+                dummyDmgTotal += actualDmg;
+                dummyLastHit = actualDmg;
+                dummyDmgWindow.push({ time: now, dmg: actualDmg });
                 dummyFloatingNums.push({
                     x: hitX, y: hitY,
-                    dmg, life: 1.0, vy: -1.5
+                    dmg: actualDmg, life: 1.0, vy: -1.5
                 });
                 spawnHitEffect(hitX, hitY, false);
-                return; // 허수아비는 HP 변경 없음
+                return;
             }
 
-            const newHp = Math.max(0, target.health - dmg);
+            const newHp = Math.max(0, target.health - actualDmg);
             const isFatal = newHp <= 0;
             playersRef.child(targetId).update({ health: newHp });
             if (isFatal) playersRef.child(targetId).update({ isSpectator: true });
@@ -3172,7 +4250,7 @@
                         const ty = t.y + PLAYER_SIZE / 2;
                         const dist = Math.sqrt((tx - nx)**2 + (ty - ny)**2);
                         if (dist < zone.radius + PLAYER_SIZE / 2) {
-                            dealDamage(id, MUHUI_ZONE_DPS, tx, ty);
+                            dealDamage(id, MUHUI_ZONE_DPS, tx, ty, true);
                         }
                     }
                 }
@@ -3224,6 +4302,8 @@
                     if (id === bullet.ownerId) continue;
                     const target = players[id];
                     if (target.isSpectator || target.health <= 0) continue;
+                    // 모래시계 무적
+                    if (target.hourglassActive) continue;
                     const tx = target.x + PLAYER_SIZE / 2;
                     const ty = target.y + PLAYER_SIZE / 2;
                     const dist = Math.sqrt((bullet.x - tx) ** 2 + (bullet.y - ty) ** 2);
@@ -3314,14 +4394,14 @@
             const stats = CLASSES[myClass].stats;
             let moved = false;
 
-            // 이동속도 (워리어 스킬 시 25% 증가, 어쌔신 은신 시 2배, 대장장이 경직 시 0)
-            const curSpeed = (smithForging || samuraiParryActive)
+            // 이동속도 (워리어 스킬 시 25% 증가, 어쌔신 은신 시 2배, 대장장이 경직 시 0, 모래시계 시 0)
+            const curSpeed = (smithForging || samuraiParryActive || hourglassActive)
                 ? 0
                 : (myClass === 'warrior' && warriorSkillActive)
                 ? stats.moveSpeed * 1.25
                 : (myClass === 'assassin' && assassinStealthActive)
                 ? stats.moveSpeed * 2
-                : stats.moveSpeed;
+                : stats.moveSpeed + (fluidActive ? fluidBonus : 0);
 
             // 돌진 처리
             if (samuraiCounterActive) {
@@ -3378,6 +4458,7 @@
             updateBullets();
             updateParticles();
             updateHitEffects();
+            updateSpells();
             updateCooldownHUD();
             if (gameMode === GAME_MODE.PRACTICE) {
                 updateDummyDps();
@@ -3684,6 +4765,58 @@
                     ctx.fillText('YOU', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 20);
                 }
 
+                // ── 스펠 이펙트 시각화 ──
+                const spellSrc = isMe ? { spell: mySpell } : (player.spell ? { spell: player.spell } : null);
+                // 모래시계 (황금 껍데기) — 본인은 hourglassActive, 상대방은 player.hourglassActive
+                const showHourglass = isMe ? hourglassActive : player.hourglassActive;
+                if (showHourglass) {
+                    ctx.save();
+                    const hgPulse = 0.6 + 0.4 * Math.sin(Date.now() / 120);
+                    ctx.strokeStyle = `rgba(255,215,0,${hgPulse})`;
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#ffd700';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.85, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.fillStyle = `rgba(255,215,0,${hgPulse * 0.18})`;
+                    ctx.fill();
+                    ctx.font = 'bold 16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillText('⌛', screenX + PLAYER_SIZE/2, screenY - 8);
+                    ctx.restore();
+                }
+                // 분노 (붉은 오라)
+                const showRage = isMe ? rageActive : player.rageActive;
+                if (showRage) {
+                    ctx.save();
+                    const rPulse = 0.4 + 0.3 * Math.sin(Date.now() / 80);
+                    ctx.strokeStyle = `rgba(255,60,0,${rPulse + 0.3})`;
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#ff4400';
+                    ctx.shadowBlur = 16;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.7 + rPulse*6, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                // 유체화 (파란 잔상 링)
+                const showFluid = isMe ? fluidActive : player.fluidActive;
+                if (showFluid) {
+                    ctx.save();
+                    const fPulse = 0.3 + 0.3 * Math.sin(Date.now() / 100);
+                    ctx.strokeStyle = `rgba(68,170,255,${fPulse + 0.3})`;
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = '#44aaff';
+                    ctx.shadowBlur = 14;
+                    ctx.beginPath();
+                    ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.75, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
                 // 어쌔신 은신 복원
                 ctx.restore();
             }
@@ -3912,6 +5045,51 @@
 
             // 화면 플래시 (피격 시)
             // (화면 플래시는 HUD 섹션으로 이동)
+
+            // ── 스펠 발동 이펙트 (playerSpellEffects) 그리기 ──
+            for (const pid in playerSpellEffects) {
+                const ef = playerSpellEffects[pid];
+                const elapsed = Date.now() - ef.createdAt;
+                if (elapsed > 600) { delete playerSpellEffects[pid]; continue; }
+                const t = elapsed / 600;
+                const sx = ef.x - cameraX_r;
+                const sy = ef.y - cameraY_r;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, (1 - t) * 0.8);
+                ctx.strokeStyle = ef.color || '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = ef.color || '#ffffff';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(sx, sy, PLAYER_SIZE * (0.5 + t * 2), 0, Math.PI*2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ── 주몽 화살 시각 이펙트 (playerJumongArrows) 그리기 ──
+            for (const id in playerJumongArrows) {
+                const a = playerJumongArrows[id];
+                if (!a || a.life <= 0) continue;
+                const ax = a.x - cameraX_r;
+                const ay = a.y - cameraY_r;
+                if (ax < -30 || ax > canvas.width * _z + 30 || ay < -30 || ay > canvas.height * _z + 30) continue;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, a.life);
+                ctx.strokeStyle = '#55ff88';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#00ff44';
+                ctx.shadowBlur = 12;
+                const aDir = a.dir || Math.atan2(a.vy, a.vx);
+                ctx.beginPath();
+                ctx.moveTo(ax - Math.cos(aDir) * 14, ay - Math.sin(aDir) * 14);
+                ctx.lineTo(ax + Math.cos(aDir) * 14, ay + Math.sin(aDir) * 14);
+                ctx.stroke();
+                ctx.fillStyle = '#ccffdd';
+                ctx.beginPath();
+                ctx.arc(ax + Math.cos(aDir) * 14, ay + Math.sin(aDir) * 14, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
 
             // 총알 그리기
             for (let bullet of bullets) {
