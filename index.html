@@ -3752,7 +3752,6 @@
             bullets.push(bulletData);
             // ⚡ Firebase에 즉시 공유 (setPriority 제거 → 단순 set으로 안정성 향상)
             bulletsRef.child(bulletData.id).set(bulletData);
-            bulletsRef.child(bulletData.id).onDisconnect().remove();
         }
 
         // ========== 스킬 사용 (연사) ==========
@@ -3812,7 +3811,6 @@
                 bulletIds.add(bulletData.id);
                 bullets.push(bulletData);
                 bulletsRef.child(bulletData.id).set(bulletData);
-                bulletsRef.child(bulletData.id).onDisconnect().remove();
 
                 skillBulletCount++;
                 lastSkillBullet = now;
@@ -4476,13 +4474,16 @@
         }
 
         // ========== 게임 루프 ==========
+        let _gameLoopId = null;
         function gameLoop() {
             if (gameStatus !== GAME_STATUS.PLAYING) return;
-            
-            update();
-            render();
-            
-            requestAnimationFrame(gameLoop);
+            _gameLoopId = requestAnimationFrame(gameLoop); // 먼저 등록 — 예외가 나도 루프 유지
+            try {
+                update();
+                render();
+            } catch(e) {
+                console.warn('gameLoop error:', e);
+            }
         }
 
         function update() {
@@ -4607,6 +4608,10 @@
         }
 
         function render() {
+            // 성능: 기본 shadow OFF (ctx.save/restore가 shadow를 자동 리셋 안 함)
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+
             // ── 줌 계산 ──
             // _z: 현재 줌 배율 (1.0 = 기본, >1 = 시야 확대)
             // cameraX_r: 줌 반영 카메라 오프셋
@@ -4635,24 +4640,24 @@
             const mapScreenX = -cameraX_r;
             const mapScreenY = -cameraY_r;
 
-            // 그리드 (스케일 공간에서 보이는 월드 범위)
-            ctx.strokeStyle = 'rgba(0, 255, 245, 0.1)';
+            // 그리드 (단일 패스로 성능 최적화)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0, 255, 245, 0.08)';
             ctx.lineWidth = 1;
             const gridSize = 50;
             const startX = Math.floor(cameraX_r / gridSize) * gridSize;
             const startY = Math.floor(cameraY_r / gridSize) * gridSize;
-            for (let x = startX; x < cameraX_r + canvas.width * _z; x += gridSize) {
-                ctx.beginPath();
+            const endX = cameraX_r + canvas.width * _z;
+            const endY = cameraY_r + canvas.height * _z;
+            for (let x = startX; x < endX; x += gridSize) {
                 ctx.moveTo(x - cameraX_r, 0);
                 ctx.lineTo(x - cameraX_r, canvas.height * _z);
-                ctx.stroke();
             }
-            for (let y = startY; y < cameraY_r + canvas.height * _z; y += gridSize) {
-                ctx.beginPath();
+            for (let y = startY; y < endY; y += gridSize) {
                 ctx.moveTo(0, y - cameraY_r);
                 ctx.lineTo(canvas.width * _z, y - cameraY_r);
-                ctx.stroke();
             }
+            ctx.stroke();
 
             // 맵 경계선
             ctx.save();
@@ -4693,7 +4698,7 @@
                     ctx.strokeStyle = `rgba(160, 80, 255, ${0.85 + pulse})`;
                     ctx.lineWidth = 4;
                     ctx.shadowColor = '#aa44ff';
-                    ctx.shadowBlur = 18;
+                    ctx.shadowBlur = 3;
                     ctx.stroke();
                     ctx.shadowBlur = 0;
 
@@ -4723,7 +4728,7 @@
                         const countdown = Math.ceil((ZONE_DELAY - elapsed_z) / 1000);
                         ctx.fillStyle = 'rgba(200,160,255,0.9)';
                         ctx.shadowColor = '#aa44ff';
-                        ctx.shadowBlur = 8;
+                        ctx.shadowBlur = 3;
                         ctx.fillText(`⚡ 자기장 ${countdown}초 후 시작`, canvas.width / 2, 52);
                     } else {
                         // 좁아지는 중
@@ -4731,7 +4736,7 @@
                         const pct = Math.round((1 - t) * 100);
                         ctx.fillStyle = pct < 30 ? 'rgba(255,100,100,0.95)' : 'rgba(200,160,255,0.9)';
                         ctx.shadowColor = '#aa44ff';
-                        ctx.shadowBlur = 8;
+                        ctx.shadowBlur = 3;
                         ctx.fillText(`⚡ 자기장 ${pct}%`, canvas.width / 2, 52);
                     }
                     ctx.restore();
@@ -4753,7 +4758,7 @@
                 ctx.globalAlpha = 0.13 + wave;
                 ctx.fillStyle = '#ffaadd';
                 ctx.shadowColor = '#ff88cc';
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 5;
                 ctx.beginPath();
                 ctx.arc(zx, zy, zone.radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -4761,7 +4766,7 @@
                 ctx.globalAlpha = 0.35 + wave;
                 ctx.strokeStyle = '#ffccee';
                 ctx.lineWidth = 1.5;
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 3;
                 ctx.setLineDash([8, 6]);
                 ctx.stroke();
                 ctx.setLineDash([]);
@@ -4769,7 +4774,7 @@
                 ctx.globalAlpha = 0.5;
                 ctx.strokeStyle = '#ff99cc';
                 ctx.lineWidth = 2;
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 2;
                 ctx.beginPath();
                 ctx.arc(zx, zy, zone.radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeRatio);
                 ctx.stroke();
@@ -4867,7 +4872,7 @@
                     const b = Math.round(255 - 220 * chargeRatio2);
                     ctx.fillStyle = `rgb(${r},${g},${b})`;
                     ctx.shadowColor = `rgb(${r},${g},${b})`;
-                    ctx.shadowBlur = 6;
+                    ctx.shadowBlur = 2;
                     ctx.fillRect(cgX, cgY, cgW * Math.max(0, Math.min(1, chargeRatio2)), cgH);
                     ctx.shadowBlur = 0;
                 }
@@ -4892,7 +4897,7 @@
                     const isSpinReady = isMyWarrior && warriorSpinReady;
                     ctx.fillStyle = isSpinReady ? '#ffd700' : '#ff4444';
                     ctx.shadowColor = isSpinReady ? '#ffaa00' : '#ff0000';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.fillRect(wgX, wgY, wgW * ratio, wgH);
                     ctx.shadowBlur = 0;
 
@@ -4923,7 +4928,7 @@
                     ctx.font = `bold 12px Malgun Gothic`;
                     ctx.textAlign = 'center';
                     ctx.shadowColor = '#ff8c00';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.fillText(`⚒ +${player.smithEnhanceLevel}강`, screenX + PLAYER_SIZE / 2, screenY - 50);
                     ctx.restore();
                 }
@@ -4936,7 +4941,7 @@
                     ctx.strokeStyle = '#00cfff';
                     ctx.lineWidth = 5;
                     ctx.shadowColor = '#00cfff';
-                    ctx.shadowBlur = 22;
+                    ctx.shadowBlur = 4;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 9, 0, Math.PI * 2);
                     ctx.stroke();
@@ -4947,7 +4952,7 @@
                     ctx.font = 'bold 13px Malgun Gothic';
                     ctx.textAlign = 'center';
                     ctx.shadowColor = '#00cfff';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.fillText('⚔ 패링', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
                     ctx.restore();
                 }
@@ -4959,7 +4964,7 @@
                     ctx.strokeStyle = '#ff4444';
                     ctx.lineWidth = 4;
                     ctx.shadowColor = '#ff0000';
-                    ctx.shadowBlur = 16;
+                    ctx.shadowBlur = 7;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 6, 0, Math.PI * 2);
                     ctx.stroke();
@@ -4973,7 +4978,7 @@
                     ctx.strokeStyle = '#ffd700';
                     ctx.lineWidth = 5;
                     ctx.shadowColor = '#ff8c00';
-                    ctx.shadowBlur = 20;
+                    ctx.shadowBlur = 3;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 8, 0, Math.PI * 2);
                     ctx.stroke();
@@ -4984,7 +4989,7 @@
                     ctx.font = 'bold 13px Malgun Gothic';
                     ctx.textAlign = 'center';
                     ctx.shadowColor = '#ff8c00';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.fillText('⚒ 강화 중...', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
                     ctx.restore();
                 }
@@ -5007,7 +5012,7 @@
                     ctx.strokeStyle = `rgba(255,215,0,${hgPulse})`;
                     ctx.lineWidth = 4;
                     ctx.shadowColor = '#ffd700';
-                    ctx.shadowBlur = 20;
+                    ctx.shadowBlur = 3;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.85, 0, Math.PI*2);
                     ctx.stroke();
@@ -5015,7 +5020,7 @@
                     ctx.fill();
                     ctx.font = 'bold 16px sans-serif';
                     ctx.textAlign = 'center';
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 4;
                     ctx.fillStyle = '#ffd700';
                     ctx.fillText('⌛', screenX + PLAYER_SIZE/2, screenY - 8);
                     ctx.restore();
@@ -5028,7 +5033,7 @@
                     ctx.strokeStyle = `rgba(255,60,0,${rPulse + 0.3})`;
                     ctx.lineWidth = 3;
                     ctx.shadowColor = '#ff4400';
-                    ctx.shadowBlur = 16;
+                    ctx.shadowBlur = 7;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.7 + rPulse*6, 0, Math.PI*2);
                     ctx.stroke();
@@ -5042,7 +5047,7 @@
                     ctx.strokeStyle = `rgba(68,170,255,${fPulse + 0.3})`;
                     ctx.lineWidth = 2;
                     ctx.shadowColor = '#44aaff';
-                    ctx.shadowBlur = 14;
+                    ctx.shadowBlur = 2;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.75, 0, Math.PI*2);
                     ctx.stroke();
@@ -5074,7 +5079,7 @@
                 ctx.strokeStyle = '#cc99ff';
                 ctx.lineWidth = 3;
                 ctx.shadowColor = '#9b59b6';
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 5;
                 ctx.beginPath();
                 ctx.moveTo(scx, scy);
                 ctx.lineTo(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen);
@@ -5082,7 +5087,7 @@
                 // 단검 끝 점
                 ctx.fillStyle = '#ffffff';
                 ctx.shadowColor = '#cc99ff';
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 3;
                 ctx.beginPath();
                 ctx.arc(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen, 3, 0, Math.PI * 2);
                 ctx.fill();
@@ -5119,7 +5124,7 @@
                 ctx.strokeStyle = isSpinAtk ? '#ff6666' : '#e0e0ff';
                 ctx.lineWidth = isSpinAtk ? 4 : 3;
                 ctx.shadowColor = isSpinAtk ? '#ff2222' : '#aaaaff';
-                ctx.shadowBlur = 14;
+                ctx.shadowBlur = 2;
 
                 // 검 호 (지나온 궤적)
                 ctx.beginPath();
@@ -5157,13 +5162,13 @@
 
                 ctx.fillStyle = 'rgba(230, 126, 34, 0.55)';
                 ctx.shadowColor = '#ff8c00';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 3;
                 ctx.fillRect(offsetFront, -sqSize / 2, sqSize, sqSize);
 
                 ctx.strokeStyle = '#ffd700';
                 ctx.lineWidth = 3;
                 ctx.shadowColor = '#ffd700';
-                ctx.shadowBlur = 14;
+                ctx.shadowBlur = 2;
                 ctx.strokeRect(offsetFront, -sqSize / 2, sqSize, sqSize);
 
                 ctx.restore();
@@ -5185,7 +5190,7 @@
                     ctx.strokeStyle = '#ff6666';
                     ctx.lineWidth = 4;
                     ctx.shadowColor = '#ff2222';
-                    ctx.shadowBlur = 14;
+                    ctx.shadowBlur = 2;
                     // 호 (360도 베기처럼 원형 궤적)
                     ctx.beginPath();
                     ctx.arc(bx, by, bRadius, 0, Math.PI * 2 * bprog);
@@ -5221,7 +5226,7 @@
                     ctx.strokeStyle = '#ff2244';
                     ctx.lineWidth = 6;
                     ctx.shadowColor = '#ff0033';
-                    ctx.shadowBlur = 22;
+                    ctx.shadowBlur = 4;
                     ctx.beginPath();
                     ctx.moveTo(sx, sy);
                     ctx.lineTo(sx + Math.cos(s.dir + Math.PI) * 55, sy + Math.sin(s.dir + Math.PI) * 55);
@@ -5233,7 +5238,7 @@
                     ctx.globalAlpha = 0.45;
                     ctx.fillStyle = '#aaddff';
                     ctx.shadowColor = '#6699ff';
-                    ctx.shadowBlur = 12;
+                    ctx.shadowBlur = 5;
                     ctx.save();
                     ctx.translate(sx, sy);
                     ctx.rotate(s.dir);
@@ -5268,7 +5273,7 @@
                 ctx.globalAlpha = Math.max(0, e.life * 0.9);
                 ctx.fillStyle = e.color;
                 ctx.shadowColor = e.color;
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 2;
                 ctx.beginPath();
                 ctx.arc(sx, sy, Math.max(0.1, e.radius * e.life), 0, Math.PI * 2);
                 ctx.fill();
@@ -5291,7 +5296,7 @@
                 ctx.strokeStyle = ef.color || '#ffffff';
                 ctx.lineWidth = 3;
                 ctx.shadowColor = ef.color || '#ffffff';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 3;
                 ctx.beginPath();
                 ctx.arc(sx, sy, PLAYER_SIZE * (0.5 + t * 2), 0, Math.PI*2);
                 ctx.stroke();
@@ -5310,7 +5315,7 @@
                 ctx.strokeStyle = '#55ff88';
                 ctx.lineWidth = 3;
                 ctx.shadowColor = '#00ff44';
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 5;
                 const aDir = a.dir || Math.atan2(a.vy, a.vx);
                 ctx.beginPath();
                 ctx.moveTo(ax - Math.cos(aDir) * 14, ay - Math.sin(aDir) * 14);
@@ -5336,7 +5341,7 @@
                 if (bullet.isDummyBullet) {
                     ctx.fillStyle = '#88aaff';
                     ctx.shadowColor = '#4466ff';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.beginPath();
                     ctx.arc(screenX, screenY, 6, 0, Math.PI * 2);
                     ctx.fill();
@@ -5350,7 +5355,7 @@
                     ctx.strokeStyle = '#55ff88';
                     ctx.lineWidth = 3;
                     ctx.shadowColor = '#00ff44';
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 4;
                     ctx.beginPath();
                     const aDir = bullet.angle || Math.atan2(bullet.vy, bullet.vx);
                     ctx.moveTo(screenX - Math.cos(aDir) * 14, screenY - Math.sin(aDir) * 14);
@@ -5367,7 +5372,7 @@
                     ctx.save();
                     ctx.fillStyle = '#ff88cc';
                     ctx.shadowColor = '#ff44aa';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.beginPath();
                     ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
                     ctx.fill();
@@ -5405,7 +5410,7 @@
                     ctx.font = `bold ${14 + Math.floor(fn.dmg / 10)}px Malgun Gothic`;
                     ctx.fillStyle = fn.dmg >= 30 ? '#ff4444' : '#ffdd44';
                     ctx.shadowColor = fn.dmg >= 30 ? '#ff0000' : '#ffaa00';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 3;
                     ctx.textAlign = 'center';
                     ctx.fillText('-' + fn.dmg, fx, fy);
                     ctx.restore();
@@ -5539,12 +5544,12 @@
                 ctx.strokeStyle = 'rgba(0,255,80,0.4)';
                 ctx.lineWidth = 5;
                 ctx.shadowColor = '#00ff44';
-                ctx.shadowBlur = 16;
+                ctx.shadowBlur = 7;
                 ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
                 ctx.fillStyle = '#88ffaa';
                 ctx.font = 'bold 15px Malgun Gothic';
                 ctx.textAlign = 'left';
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 3;
                 ctx.fillText(`🦅 호크아이 ${(remaining/1000).toFixed(1)}s`, 16, 70);
                 ctx.restore();
             }
