@@ -241,11 +241,13 @@
         .room-list {
             max-height: 320px;
             overflow-y: auto;
+            scrollbar-width: none;
             margin: 16px 0;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
+        .room-list::-webkit-scrollbar { display: none; }
 
         .room-item {
             background: #0f3460;
@@ -780,7 +782,7 @@
             <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
             <button id="nicknameNextBtn">다음</button>
             <p class="error" id="nicknameError"></p>
-            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.4</span>
+            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.5</span>
         </div>
     </div>
 
@@ -2277,6 +2279,19 @@
                 delete players[snap.key];
                 delete playerRenderPos[snap.key];
                 updatePlayerList();
+                // 플레이어 퇴장 시 승리 조건 체크
+                if (gameMode === GAME_MODE.NORMAL && gameStatus === GAME_STATUS.PLAYING && !victoryShown) {
+                    const alivePlayers = Object.keys(players).filter(pid =>
+                        pid !== DUMMY_ID && !players[pid].isSpectator && players[pid].health > 0
+                    );
+                    const totalNonSpec = Object.keys(players).filter(pid => pid !== DUMMY_ID && !players[pid].isSpectator).length;
+                    if (alivePlayers.length === 1 && totalNonSpec >= 1) {
+                        const winner = players[alivePlayers[0]];
+                        if (winner) showVictoryScreen(winner.nickname);
+                    } else if (alivePlayers.length === 0 && totalNonSpec === 0) {
+                        // 아무도 없으면 그냥 대기실로
+                    }
+                }
             });
             playersRef.on('child_changed', snap => {
                 const id = snap.key;
@@ -2453,26 +2468,12 @@
                 document.getElementById('hostIndicator').style.display = 'none';
 
                 if (!wasPractice && savedRoom) {
-                    // ④ 같은 방 대기실로 복귀 — 게임 잔여 데이터 정리
-                    currentRoomId = savedRoom;
-                    initRoomRefs(savedRoom);
-                    Promise.all([
-                        database.ref('rooms/' + savedRoom + '/bullets').remove(),
-                        database.ref('rooms/' + savedRoom + '/particles').remove(),
-                        database.ref('rooms/' + savedRoom + '/swings').remove(),
-                        database.ref('rooms/' + savedRoom + '/stabs').remove(),
-                        database.ref('rooms/' + savedRoom + '/smokes').remove(),
-                        database.ref('rooms/' + savedRoom + '/hitEffects').remove(),
-                        database.ref('rooms/' + savedRoom + '/spellEffects').remove(),
-                        database.ref('rooms/' + savedRoom + '/samuraiSlashes').remove(),
-                        database.ref('rooms/' + savedRoom + '/smithHammers').remove(),
-                        database.ref('rooms/' + savedRoom + '/jumongArrows').remove(),
-                        database.ref('rooms/' + savedRoom + '/muhuiZones').remove(),
-                        database.ref('rooms/' + savedRoom + '/parryHits').remove(),
-                    ]).catch(() => {});
-                    gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
-                        .then(() => joinLobby(false))
-                        .catch(() => joinLobby(false));
+                    // ④ 내 플레이어만 제거하고 새 방으로 대기실 이동
+                    // (게임 상태를 LOBBY로 바꾸면 남은 플레이어들도 튕기므로 변경 금지)
+                    // 새 방을 만들어 혼자 대기실로 복귀
+                    const newRoomId2 = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                    currentRoomId = null;
+                    joinRoom(newRoomId2, true);
                 } else {
                     // 연습모드는 새 방을 만들어 대기실로 복귀
                     const newRoomId = 'room_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -4758,8 +4759,18 @@
                 const remaining = Math.max(0, zone.duration - elapsed);
                 const lifeRatio = remaining / zone.duration;
                 if (lifeRatio <= 0) continue;
-                const zx = zone.x - cameraX_r;
-                const zy = zone.y - cameraY_r;
+                // 내 장판은 zone.x/y(로컬 갱신), 상대 장판은 보간 렌더 위치 사용 (끊김 방지)
+                let _zRawX = zone.x, _zRawY = zone.y;
+                if (ownerId !== myPlayerId) {
+                    const _zRp = playerRenderPos[ownerId];
+                    const _zOwner = players[ownerId];
+                    if (_zRp && _zOwner) {
+                        _zRawX = _zRp.x + PLAYER_SIZE / 2;
+                        _zRawY = _zRp.y + PLAYER_SIZE / 2;
+                    }
+                }
+                const zx = _zRawX - cameraX_r;
+                const zy = _zRawY - cameraY_r;
                 ctx.save();
                 const wave = 0.08 * Math.sin(Date.now() / 220);
                 // 채우기 (매우 연하게)
@@ -5348,20 +5359,7 @@
                 ctx.fill();
                 ctx.stroke();
             }
-            // 주몽 화살
-            ctx.strokeStyle = '#55ff88';
-            ctx.lineWidth = 3;
-            for (let bullet of bullets) {
-                if (!bullet.isArrow) continue;
-                const screenX = bullet.x - cameraX_r;
-                const screenY = bullet.y - cameraY_r;
-                if (screenX < -30 || screenX > canvas.width * _z + 30 || screenY < -30 || screenY > canvas.height * _z + 30) continue;
-                const aDir = bullet.angle || Math.atan2(bullet.vy, bullet.vx);
-                ctx.beginPath();
-                ctx.moveTo(screenX - Math.cos(aDir) * 14, screenY - Math.sin(aDir) * 14);
-                ctx.lineTo(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14);
-                ctx.stroke();
-            }
+            // 주몽 화살은 playerJumongArrows에서 렌더링하므로 bullets 배열에서 중복 렌더링 제거
             // 허수아비 총알
             ctx.fillStyle = '#88aaff';
             ctx.strokeStyle = '#aaccff';
@@ -5546,14 +5544,16 @@
             const now = Date.now();
             if (now - _lastPlayerListUpdate < 500) return; // 2fps max for player list
             _lastPlayerListUpdate = now;
-            const playerCount = Object.keys(players).length;
-            document.getElementById('playerCount').textContent = playerCount;
+            // 허수아비·관전자 제외한 실제 플레이어 수
+            const realPlayers = Object.keys(players).filter(id => id !== DUMMY_ID && !players[id].isSpectator);
+            document.getElementById('playerCount').textContent = realPlayers.length;
             
             const listContent = document.getElementById('playerListContent');
             listContent.innerHTML = '';
             
             for (let id in players) {
                 const player = players[id];
+                if (id === DUMMY_ID) continue; // 허수아비 목록 제외
                 const isMe = id === myPlayerId;
                 
                 const item = document.createElement('div');
@@ -5561,8 +5561,8 @@
                 item.innerHTML = `
                     <div class="player-color" style="background: ${player.color}"></div>
                     <div>
-                        <div><strong>${player.nickname}</strong> ${isMe ? '(나)' : ''}</div>
-                        <div style="font-size: 12px; color: #aaa;">${player.className}</div>
+                        <div><strong>${player.nickname}</strong> ${isMe ? '(나)' : ''}${player.isSpectator ? ' 👁' : ''}</div>
+                        <div style="font-size: 12px; color: #aaa;">${player.className || ''}${player.health <= 0 ? ' (사망)' : ''}</div>
                     </div>
                 `;
                 listContent.appendChild(item);
