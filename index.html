@@ -1407,6 +1407,7 @@
         let mouseX = 0;
         let mouseY = 0;
         let _lastPosWrite = 0; // Firebase 위치 업데이트 쓰로틀용
+        let _domMyHealth = null; // DOM 캐시
 
         // ========== 화면 전환 ==========
         function showScreen(screenId) {
@@ -1971,14 +1972,9 @@
                         }
                     });
 
-                    document.addEventListener('keydown', handleKeyDown);
-                    document.addEventListener('keyup', handleKeyUp);
-                    canvas.addEventListener('mousemove', handleMouseMove);
-                    canvas.addEventListener('mousedown', handleMouseDown);
-                    canvas.addEventListener('mouseup', handleMouseUp);
-                    canvas.addEventListener('contextmenu', handleRightClick);
-                    setupEffectListeners(); // 관전자도 이펙트 수신
-                    gameLoop();
+                    setupInputListeners();
+                    setupEffectListeners();
+                    if (!_gameLoopRunning) { _gameLoopRunning = true; gameLoop(); }
                     return;
                 }
                 
@@ -2207,6 +2203,8 @@
         function _startGameInner() {
             playersRef.off();
             gameStateRef.off();
+            // 리스너 플래그 리셋 — 게임 시작 시 재등록 허용
+            _effectListenersSetup = false;
 
             // 자기장 시작 시각 초기화
             zoneGameStartTime = Date.now();
@@ -2250,32 +2248,40 @@
                 });
             }
 
-            // 키보드 이벤트
-            document.addEventListener('keydown', handleKeyDown);
-            document.addEventListener('keyup', handleKeyUp);
-
-            // 마우스 이벤트
-            canvas.addEventListener('mousemove', handleMouseMove);
-            canvas.addEventListener('mousedown', handleMouseDown);
-            canvas.addEventListener('mouseup', handleMouseUp);
-            canvas.addEventListener('contextmenu', handleRightClick);
+            // 입력 이벤트 (중복 등록 방지)
+            setupInputListeners();
 
             // 플레이어 실시간 동기화 + 승리 조건 체크
-            playersRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                for (let id in players) { if (!data || !data[id]) delete players[id]; }
-                if (data) { for (let id in data) players[id] = data[id]; }
+            // ── 위치/상태 수신: child_changed로 분리 (value는 이동마다 전체 재수신 → 메인스레드 블로킹)
+            playersRef.on('child_added', snap => {
+                const d = snap.val(); if (d) players[snap.key] = d;
+                updatePlayerList();
+            });
+            playersRef.on('child_removed', snap => {
+                delete players[snap.key];
+                updatePlayerList();
+            });
+            playersRef.on('child_changed', snap => {
+                const id = snap.key;
+                const d = snap.val();
+                if (!d) return;
+                // 위치만 갱신하면 되는 경우 Object.assign으로 최소 복사
+                if (players[id]) Object.assign(players[id], d);
+                else players[id] = d;
+
+                // 관전 대상 갱신
                 if ((isSpectating || !isAlive) && (!spectateTargetId || !players[spectateTargetId] || players[spectateTargetId].isSpectator)) {
                     pickRandomSpectateTarget();
                 }
-                updatePlayerList();
-                // 승리 조건 체크 (일반 모드)
-                if (gameMode === GAME_MODE.NORMAL && data) {
-                    const alivePlayers = Object.keys(data).filter(id =>
-                        id !== DUMMY_ID && !data[id].isSpectator && data[id].health > 0
+
+                // 승리 조건 체크 (HP/isSpectator 변경 시에만 의미 있음)
+                if (gameMode === GAME_MODE.NORMAL && (d.health !== undefined || d.isSpectator !== undefined)) {
+                    const alivePlayers = Object.keys(players).filter(pid =>
+                        pid !== DUMMY_ID && !players[pid].isSpectator && players[pid].health > 0
                     );
-                    if (alivePlayers.length === 1 && Object.keys(data).filter(i => i !== DUMMY_ID).length >= 2) {
-                        const winner = data[alivePlayers[0]];
+                    const totalPlayers = Object.keys(players).filter(pid => pid !== DUMMY_ID).length;
+                    if (alivePlayers.length === 1 && totalPlayers >= 2) {
+                        const winner = players[alivePlayers[0]];
                         if (winner) showVictoryScreen(winner.nickname);
                     }
                 }
@@ -2353,6 +2359,9 @@
                 const wasPractice = (gameMode === GAME_MODE.PRACTICE);
 
                 // ① 리스너 먼저 해제
+                _effectListenersSetup = false;
+                _inputListenersSetup = false;
+                _gameLoopRunning = false;
                 try { playersRef && playersRef.off(); } catch(e) {}
                 try { gameStateRef && gameStateRef.off(); } catch(e) {}
                 try { bulletsRef && bulletsRef.off(); } catch(e) {}
@@ -2423,12 +2432,26 @@
                 }
             };
 
-            // 게임 루프 시작
-            gameLoop();
+            // 게임 루프 시작 (중복 방지)
+            if (!_gameLoopRunning) { _gameLoopRunning = true; gameLoop(); }
         }
 
         // ========== 이펙트 Firebase 리스너 (플레이어/관전자 공통) ==========
+        let _effectListenersSetup = false;
+        let _inputListenersSetup = false;
+        function setupInputListeners() {
+            if (_inputListenersSetup) return;
+            _inputListenersSetup = true;
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('contextmenu', handleRightClick);
+        }
         function setupEffectListeners() {
+            if (_effectListenersSetup) return; // 중복 등록 방지
+            _effectListenersSetup = true;
             // ── 총알 수신 (위치 경과시간 보정) ──
             bulletsRef.on('child_added', (snapshot) => {
                 const b = snapshot.val();
@@ -2661,6 +2684,7 @@
                 clearTimeout(autoTimer);
 
                 // ① 모든 Firebase 리스너 해제 (location.reload 트리거 방지)
+                _effectListenersSetup = false; _inputListenersSetup = false; _gameLoopRunning = false;
                 try { playersRef && playersRef.off(); } catch(e) {}
                 try { gameStateRef && gameStateRef.off(); } catch(e) {}
                 try { bulletsRef && bulletsRef.off(); } catch(e) {}
@@ -4007,7 +4031,8 @@
             if (samuraiCounterActive && samuraiCounterFrames > 0) {
                 myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiCounterVx));
                 myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiCounterVy));
-                playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y });
+                const _dcNow = Date.now();
+                if (_dcNow - _lastPosWrite >= 100) { _lastPosWrite = _dcNow; playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y }); }
 
                 // 경로상 적 피해 (돌진 중 접촉 판정)
                 for (let id in players) {
@@ -4084,7 +4109,8 @@
                 if (samuraiSlashDashFrames > 0) {
                     myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiSlashDashVx));
                     myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiSlashDashVy));
-                    playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y });
+                    const _dsNow = Date.now();
+                    if (_dsNow - _lastPosWrite >= 100) { _lastPosWrite = _dsNow; playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y }); }
                     samuraiSlashDashFrames--;
                 }
 
@@ -4462,9 +4488,10 @@
 
         // ========== 게임 루프 ==========
         let _gameLoopId = null;
+        let _gameLoopRunning = false;
         function gameLoop() {
             if (gameStatus !== GAME_STATUS.PLAYING) return;
-            _gameLoopId = requestAnimationFrame(gameLoop); // 먼저 등록 — 예외가 나도 루프 유지
+            _gameLoopId = requestAnimationFrame(gameLoop);
             try {
                 update();
                 render();
@@ -4552,13 +4579,14 @@
             
             if (moved) {
                 const _now = Date.now();
-                if (_now - _lastPosWrite >= 50) { // 20fps 쓰로틀
+                if (_now - _lastPosWrite >= 100) { // 10fps 쓰로틀 (로컬은 즉시 반영됨)
                     _lastPosWrite = _now;
                     playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y, timestamp: _now });
                 }
             }
             
-            document.getElementById('myHealth').textContent = `${myPlayer.health}/${myPlayer.maxHealth}`;
+            if (!_domMyHealth) _domMyHealth = document.getElementById('myHealth');
+            if (_domMyHealth) _domMyHealth.textContent = `${myPlayer.health}/${myPlayer.maxHealth}`;
             
             // 어쌔신 은신 만료 체크
             if (myClass === 'assassin' && assassinStealthActive && Date.now() > assassinStealthEnd) {
