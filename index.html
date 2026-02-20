@@ -780,7 +780,7 @@
             <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
             <button id="nicknameNextBtn">다음</button>
             <p class="error" id="nicknameError"></p>
-            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.3</span>
+            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.4</span>
         </div>
     </div>
 
@@ -5265,8 +5265,17 @@
             for (const id in playerJumongArrows) {
                 const a = playerJumongArrows[id];
                 if (!a || a.life <= 0) continue;
-                const ax = a.x - cameraX_r;
-                const ay = a.y - cameraY_r;
+                let _aOffX = 0, _aOffY = 0;
+                if (id !== myPlayerId) {
+                    const _aOwner = players[id];
+                    const _aRp = playerRenderPos[id];
+                    if (_aOwner && _aRp) {
+                        _aOffX = _aRp.x - (_aOwner.x + PLAYER_SIZE / 2);
+                        _aOffY = _aRp.y - (_aOwner.y + PLAYER_SIZE / 2);
+                    }
+                }
+                const ax = a.x + _aOffX - cameraX_r;
+                const ay = a.y + _aOffY - cameraY_r;
                 if (ax < -30 || ax > canvas.width * _z + 30 || ay < -30 || ay > canvas.height * _z + 30) continue;
                 ctx.globalAlpha = Math.max(0, a.life);
                 const aDir = a.dir || Math.atan2(a.vy, a.vx);
@@ -5286,8 +5295,19 @@
             ctx.lineWidth = 2;
             for (let bullet of bullets) {
                 if (bullet.isArrow || bullet.isPetal || bullet.isDummyBullet) continue;
-                const screenX = bullet.x - cameraX_r;
-                const screenY = bullet.y - cameraY_r;
+                // 다른 플레이어가 쏜 총알: 발사자 캐릭터의 렌더 위치와 실제 위치 차이만큼 보정
+                // → 총알이 항상 캐릭터에서 나가는 것처럼 보임
+                let _bOffX = 0, _bOffY = 0;
+                if (bullet.ownerId !== myPlayerId) {
+                    const _bOwner = players[bullet.ownerId];
+                    const _bRp = playerRenderPos[bullet.ownerId];
+                    if (_bOwner && _bRp) {
+                        _bOffX = _bRp.x - (_bOwner.x + PLAYER_SIZE / 2);
+                        _bOffY = _bRp.y - (_bOwner.y + PLAYER_SIZE / 2);
+                    }
+                }
+                const screenX = bullet.x + _bOffX - cameraX_r;
+                const screenY = bullet.y + _bOffY - cameraY_r;
                 if (screenX < -20 || screenX > canvas.width * _z + 20 || screenY < -20 || screenY > canvas.height * _z + 20) continue;
                 if (bullet.isSkillBullet) {
                     ctx.fillStyle = '#ff3333';
@@ -5311,8 +5331,17 @@
             ctx.lineWidth = 1.5;
             for (let bullet of bullets) {
                 if (!bullet.isPetal) continue;
-                const screenX = bullet.x - cameraX_r;
-                const screenY = bullet.y - cameraY_r;
+                let _pOffX = 0, _pOffY = 0;
+                if (bullet.ownerId !== myPlayerId) {
+                    const _pOwner = players[bullet.ownerId];
+                    const _pRp = playerRenderPos[bullet.ownerId];
+                    if (_pOwner && _pRp) {
+                        _pOffX = _pRp.x - (_pOwner.x + PLAYER_SIZE / 2);
+                        _pOffY = _pRp.y - (_pOwner.y + PLAYER_SIZE / 2);
+                    }
+                }
+                const screenX = bullet.x + _pOffX - cameraX_r;
+                const screenY = bullet.y + _pOffY - cameraY_r;
                 if (screenX < -20 || screenX > canvas.width * _z + 20 || screenY < -20 || screenY > canvas.height * _z + 20) continue;
                 ctx.beginPath();
                 ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
