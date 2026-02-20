@@ -780,7 +780,7 @@
             <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
             <button id="nicknameNextBtn">다음</button>
             <p class="error" id="nicknameError"></p>
-            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.0</span>
+            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.2</span>
         </div>
     </div>
 
@@ -1220,14 +1220,6 @@
         let muhuiZoneDmgTimer = 0;              // 장판 틱 카운터
         const playerMuhuiZones = {};            // 다른 플레이어 장판 상태
 
-        // ========== 자기장 (배틀그라운드식) ==========
-        const ZONE_DELAY      = 5000;   // 게임 시작 후 자기장 시작까지 대기 (5초)
-        const ZONE_SHRINK_DUR = 45000;  // 완전히 닫히는 데 걸리는 시간 (45초)
-        const ZONE_DPS        = 5;      // 자기장 밖 초당 피해
-        const ZONE_MAX_R      = Math.sqrt(2) * 1000; // 초기 반경 (맵 모서리 포함)
-        const ZONE_MIN_R      = 300;    // 최소 반경 (플레이어 화면 하나 크기, 최후 결투장)
-        let zoneGameStartTime = 0;      // 게임 시작 시각 (자기장 계산용)
-        let zoneDmgAccum      = 0;      // 자기장 피해 누적 (ms)
 
         // 사무라이 전용 상태
         const SAMURAI_SLASH_TOTAL = 10;       // 찌르기 애니메이션 총 프레임
@@ -1293,6 +1285,7 @@
         let gameMode = GAME_MODE.NORMAL;  // 현재 게임 모드
 
         const players = {};
+        const playerRenderPos = {}; // 다른 플레이어 보간 렌더링 위치
         const keys = {};
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -1304,8 +1297,8 @@
             return {
                 id: DUMMY_ID,
                 nickname: '훈련용 허수아비',
-                x: 1000 - PLAYER_SIZE / 2,
-                y: 1000 - PLAYER_SIZE / 2,
+                x: 750 - PLAYER_SIZE / 2,
+                y: 750 - PLAYER_SIZE / 2,
                 health: 999999,
                 maxHealth: 999999,
                 color: '#888888',
@@ -1401,8 +1394,8 @@
         const playerStabs = {};
 
         // 맵 크기
-        const MAP_W = 2000;
-        const MAP_H = 2000;
+        const MAP_W = 1500;
+        const MAP_H = 1500;
 
         // 마우스 위치
         let mouseX = 0;
@@ -2177,8 +2170,8 @@
         function startGameSession(allPlayers) {
             const updates = {};
             for (let id in allPlayers) {
-                const spawnX = 100 + Math.random() * 1800;
-                const spawnY = 100 + Math.random() * 1800;
+                const spawnX = 75 + Math.random() * 1350;
+                const spawnY = 75 + Math.random() * 1350;
                 updates[id + '/x'] = spawnX;
                 updates[id + '/y'] = spawnY;
                 updates[id + '/ready'] = false;
@@ -2221,9 +2214,6 @@
             // 리스너 플래그 리셋 — 게임 시작 시 재등록 허용
             _effectListenersSetup = false;
 
-            // 자기장 시작 시각 초기화
-            zoneGameStartTime = Date.now();
-            zoneDmgAccum = 0;
 
             // ★ 내 이전 세션 잔여 데이터 정리 (비동기, 블로킹 없음)
             Promise.all([
@@ -2278,10 +2268,14 @@
             // ── 위치/상태 수신: child_changed로 분리 (value는 이동마다 전체 재수신 → 메인스레드 블로킹)
             playersRef.on('child_added', snap => {
                 const d = snap.val(); if (d) players[snap.key] = d;
+                if (d && snap.key !== myPlayerId && d.x !== undefined) {
+                    playerRenderPos[snap.key] = { x: d.x, y: d.y, tx: d.x, ty: d.y };
+                }
                 updatePlayerList();
             });
             playersRef.on('child_removed', snap => {
                 delete players[snap.key];
+                delete playerRenderPos[snap.key];
                 updatePlayerList();
             });
             playersRef.on('child_changed', snap => {
@@ -2291,6 +2285,15 @@
                 // 위치만 갱신하면 되는 경우 Object.assign으로 최소 복사
                 if (players[id]) Object.assign(players[id], d);
                 else players[id] = d;
+                // 다른 플레이어 보간 목표 갱신 (내 플레이어 제외)
+                if (id !== myPlayerId && d.x !== undefined && d.y !== undefined) {
+                    if (!playerRenderPos[id]) {
+                        playerRenderPos[id] = { x: d.x, y: d.y };
+                    }
+                    // 목표 위치만 업데이트 — 실제 보간은 update()에서
+                    playerRenderPos[id].tx = d.x;
+                    playerRenderPos[id].ty = d.y;
+                }
 
                 // 관전 대상 갱신
                 if ((isSpectating || !isAlive) && (!spectateTargetId || !players[spectateTargetId] || players[spectateTargetId].isSpectator)) {
@@ -2332,8 +2335,8 @@
                     if (gameMode === GAME_MODE.PRACTICE) {
                         // 연습 모드: 1초 후 부활
                         setTimeout(() => {
-                            const respawnX = 100 + Math.random() * 1800;
-                            const respawnY = 100 + Math.random() * 1800;
+                            const respawnX = 75 + Math.random() * 1350;
+                            const respawnY = 75 + Math.random() * 1350;
                             const maxHp = myClass === 'blacksmith' ? CLASSES.blacksmith.stats.health : CLASSES[myClass].stats.health;
                             playersRef.child(myPlayerId).update({
                                 x: respawnX,
@@ -2426,11 +2429,12 @@
                 isDashing = false; dashRemainFrames = 0;
                 smithEnhanceLevel = 0; smithForging = false;
                 CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
-                jumongHawkeyeActive = false; muhuiZoneActive = false; zoneGameStartTime = 0; zoneDmgAccum = 0;
+                jumongHawkeyeActive = false; muhuiZoneActive = false;
                 bullets.length = 0; bulletIds.clear();
                 particles.length = 0; particleIds.clear();
                 hitEffects.length = 0;
                 for (const k in players) delete players[k];
+                for (const k in playerRenderPos) delete playerRenderPos[k];
 
                 document.getElementById('info').style.display = 'none';
                 document.getElementById('playerList').style.display = 'none';
@@ -2768,11 +2772,12 @@
                 isDashing = false; dashRemainFrames = 0;
                 smithEnhanceLevel = 0; smithForging = false;
                 CLASSES.blacksmith.stats = { moveSpeed: 4, attack: 10, attackSpeed: 0.5, health: 80 };
-                jumongHawkeyeActive = false; muhuiZoneActive = false; zoneGameStartTime = 0; zoneDmgAccum = 0;
+                jumongHawkeyeActive = false; muhuiZoneActive = false;
                 bullets.length = 0; bulletIds.clear();
                 particles.length = 0; particleIds.clear();
                 hitEffects.length = 0;
                 for (const k in players) delete players[k];
+                for (const k in playerRenderPos) delete playerRenderPos[k];
                 for (const k in playerSwings) delete playerSwings[k];
                 for (const k in playerStabs) delete playerStabs[k];
                 for (const k in playerSpellEffects) delete playerSpellEffects[k];
@@ -2927,7 +2932,9 @@
                 totalFrames: SAMURAI_SLASH_TOTAL,
                 thrustLength: lvl.length,
                 thrustWidth: lvl.width,
-                createdAt: now
+                createdAt: now,
+                ox: myPlayer.x + PLAYER_SIZE / 2,
+                oy: myPlayer.y + PLAYER_SIZE / 2
             };
             samuraiSlashesRef.child(myPlayerId).set(slashData);
             playerSamuraiSlashes[myPlayerId] = { ...slashData, frames: SAMURAI_SLASH_TOTAL, progress: 0 };
@@ -2995,7 +3002,9 @@
                     arc: _currentSwingArc,
                     range: _currentSwingRange,
                     totalFrames: WARRIOR_SWING_TOTAL,
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    ox: myPlayer.x + PLAYER_SIZE / 2,
+                    oy: myPlayer.y + PLAYER_SIZE / 2
                 };
                 swingsRef.child(myPlayerId).set(swingData);
                 playerSwings[myPlayerId] = { ...swingData, frames: WARRIOR_SWING_TOTAL, angle: warriorSwingDir - _currentSwingArc / 2 };
@@ -3608,10 +3617,11 @@
                 const tipY = cy + Math.sin(assassinStabDir) * ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
 
                 // playerStabs에도 내 현재 상태 반영 (렌더링에 사용)
+                // x/y는 공격 시작 위치 고정 (매 프레임 덮어쓰면 이동 시 궤적 어긋남)
                 playerStabs[myPlayerId] = {
                     ownerId: myPlayerId,
-                    x: cx,
-                    y: cy,
+                    x: playerStabs[myPlayerId]?.x ?? cx,
+                    y: playerStabs[myPlayerId]?.y ?? cy,
                     dir: assassinStabDir,
                     totalFrames: ASSASSIN_STAB_TOTAL,
                     frames: assassinStabFrames,
@@ -3905,7 +3915,9 @@
                     totalFrames: WARRIOR_SWING_TOTAL,
                     frames: warriorSwingFrames,
                     angle: warriorSwingAngle,
-                    createdAt: playerSwings[myPlayerId]?.createdAt || Date.now()
+                    createdAt: playerSwings[myPlayerId]?.createdAt || Date.now(),
+                    ox: playerSwings[myPlayerId]?.ox,  // 공격 시작 위치 유지
+                    oy: playerSwings[myPlayerId]?.oy
                 };
 
                 const isSpinAttack = (_currentSwingArc >= Math.PI * 1.9);
@@ -4081,8 +4093,8 @@
 
             // ── 반격 돌진 ──
             if (samuraiCounterActive && samuraiCounterFrames > 0) {
-                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiCounterVx));
-                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiCounterVy));
+                myPlayer.x = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.x + samuraiCounterVx));
+                myPlayer.y = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.y + samuraiCounterVy));
                 const _dcNow = Date.now();
                 if (_dcNow - _lastPosWrite >= 100) { _lastPosWrite = _dcNow; playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y }); }
 
@@ -4159,8 +4171,8 @@
 
                 // 돌진
                 if (samuraiSlashDashFrames > 0) {
-                    myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x + samuraiSlashDashVx));
-                    myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y + samuraiSlashDashVy));
+                    myPlayer.x = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.x + samuraiSlashDashVx));
+                    myPlayer.y = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.y + samuraiSlashDashVy));
                     const _dsNow = Date.now();
                     if (_dsNow - _lastPosWrite >= 100) { _lastPosWrite = _dsNow; playersRef.child(myPlayerId).update({ x: myPlayer.x, y: myPlayer.y }); }
                     samuraiSlashDashFrames--;
@@ -4417,39 +4429,6 @@
             }
         }
 
-        // ========== 자기장 (비활성화 - 성능 문제로 주석 처리) ==========
-        function getZoneRadius() {
-            const elapsed = Date.now() - zoneGameStartTime;
-            if (elapsed < ZONE_DELAY) return ZONE_MAX_R;
-            const shrinkElapsed = Math.min(elapsed - ZONE_DELAY, ZONE_SHRINK_DUR);
-            const t = shrinkElapsed / ZONE_SHRINK_DUR;
-            return ZONE_MAX_R * (1 - t * t) * (1 - ZONE_MIN_R / ZONE_MAX_R) + ZONE_MIN_R;
-        }
-
-        function updateZone() {
-            // 자기장 비활성화 — 성능 개선을 위해 주석 처리
-            /*
-            if (!myPlayerId || !players[myPlayerId] || !isAlive) return;
-            const r = getZoneRadius();
-            if (r >= ZONE_MAX_R) return;
-            const cx = MAP_W / 2;
-            const cy = MAP_H / 2;
-            const myPlayer = players[myPlayerId];
-            const px = myPlayer.x + PLAYER_SIZE / 2;
-            const py = myPlayer.y + PLAYER_SIZE / 2;
-            const dist = Math.sqrt((px - cx)**2 + (py - cy)**2);
-            if (dist > r) {
-                zoneDmgAccum += 1000 / 60;
-                if (zoneDmgAccum >= 1000) {
-                    zoneDmgAccum -= 1000;
-                    dealDamage(myPlayerId, ZONE_DPS, px, py, true);
-                }
-            } else {
-                zoneDmgAccum = 0;
-            }
-            */
-        }
-
         // ========== 총알 업데이트 ==========
         function updateBullets() {
             const now = Date.now();
@@ -4466,7 +4445,7 @@
                     continue;
                 }
                 // 맵 밖
-                if (bullet.x < -100 || bullet.x > 2100 || bullet.y < -100 || bullet.y > 2100) {
+                if (bullet.x < -100 || bullet.x > 1600 || bullet.y < -100 || bullet.y > 1600) {
                     if (bullet.ownerId === myPlayerId) bulletsRef.child(bullet.id).remove();
                     bulletIds.delete(bullet.id);
                     bullets.splice(i, 1);
@@ -4565,6 +4544,15 @@
                 }
             }
 
+            // ── 다른 플레이어 위치 보간 (매 프레임) ──
+            const LERP_SPEED = 0.25; // 0~1, 클수록 빠르게 따라감 (0.25 ≈ 16ms*0.25)
+            for (const id in playerRenderPos) {
+                const rp = playerRenderPos[id];
+                if (rp.tx === undefined) continue;
+                rp.x += (rp.tx - rp.x) * LERP_SPEED;
+                rp.y += (rp.ty - rp.y) * LERP_SPEED;
+            }
+
             // 관전 모드 카메라
             if (isSpectating || !isAlive) {
                 if (spectateTargetId && players[spectateTargetId]) {
@@ -4608,8 +4596,8 @@
                 spawnDashParticles(myPlayer.x, myPlayer.y);
                 myPlayer.x += dashVx;
                 myPlayer.y += dashVy;
-                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x));
-                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y));
+                myPlayer.x = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.x));
+                myPlayer.y = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.y));
                 dashRemainFrames--;
                 moved = true;
                 if (dashRemainFrames <= 0) isDashing = false;
@@ -4618,8 +4606,8 @@
                 if (keys['s'] || keys['ㄴ']) { myPlayer.y += curSpeed; moved = true; }
                 if (keys['a'] || keys['ㅁ']) { myPlayer.x -= curSpeed; moved = true; }
                 if (keys['d'] || keys['ㄹ']) { myPlayer.x += curSpeed; moved = true; }
-                myPlayer.x = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.x));
-                myPlayer.y = Math.max(0, Math.min(2000 - PLAYER_SIZE, myPlayer.y));
+                myPlayer.x = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.x));
+                myPlayer.y = Math.max(0, Math.min(1500 - PLAYER_SIZE, myPlayer.y));
             }
             
             // 카메라 업데이트 (항상 플레이어 중앙, 줌은 render()에서 ctx.scale로만 처리)
@@ -4672,7 +4660,6 @@
             }
             updateJumong();
             updateMuhui();
-            if (gameMode === GAME_MODE.NORMAL) updateZone();
         }
 
         function render() {
@@ -4742,70 +4729,6 @@
             if (mapScreenX + MAP_W < _vW) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, _vW - mapScreenX - MAP_W, MAP_H);
             ctx.restore();
 
-            // ── 자기장 렌더링 비활성화 (성능 문제로 주석 처리) ──
-            /*
-            if (gameMode === GAME_MODE.NORMAL) {
-                const zr = getZoneRadius();
-                if (zr < ZONE_MAX_R) {
-                    const zcx = MAP_W / 2 - cameraX_r;
-                    const zcy = MAP_H / 2 - cameraY_r;
-                    const now_z = Date.now();
-
-                    // 자기장 바깥 오버레이 — evenodd로 원 안쪽 구멍
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(0, 0, _vW, _vH);
-                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2, true);
-                    ctx.fillStyle = 'rgba(70, 0, 160, 0.30)';
-                    ctx.fill('evenodd');
-
-                    // 경계 링 — shadow 없이 두 겹
-                    ctx.beginPath();
-                    ctx.arc(zcx, zcy, zr + 3, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(190, 100, 255, 0.35)';
-                    ctx.lineWidth = 10;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(200, 90, 255, 0.9)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-
-                    // 자기장 밖 경고 테두리
-                    if (myPlayerId && players[myPlayerId] && isAlive) {
-                        const me = players[myPlayerId];
-                        const mpx = me.x + PLAYER_SIZE / 2;
-                        const mpy = me.y + PLAYER_SIZE / 2;
-                        const mdist = Math.sqrt((mpx - MAP_W/2)**2 + (mpy - MAP_H/2)**2);
-                        if (mdist > zr) {
-                            const warnAlpha = 0.35 + 0.2 * Math.abs(Math.sin(now_z / 220));
-                            ctx.strokeStyle = `rgba(180, 0, 255, ${warnAlpha})`;
-                            ctx.lineWidth = 20;
-                            ctx.strokeRect(0, 0, _vW, _vH);
-                        }
-                    }
-                    ctx.restore();
-
-                    // 자기장 HUD
-                    const elapsed_z = now_z - zoneGameStartTime;
-                    ctx.save();
-                    ctx.font = 'bold 14px Malgun Gothic';
-                    ctx.textAlign = 'center';
-                    ctx.shadowBlur = 0;
-                    if (elapsed_z < ZONE_DELAY) {
-                        const countdown = Math.ceil((ZONE_DELAY - elapsed_z) / 1000);
-                        ctx.fillStyle = 'rgba(210,170,255,0.95)';
-                        ctx.fillText(`⚡ 자기장 ${countdown}초 후 시작`, canvas.width / 2, 52);
-                    } else {
-                        const t = Math.min((elapsed_z - ZONE_DELAY) / ZONE_SHRINK_DUR, 1);
-                        const pct = Math.round((1 - t) * 100);
-                        ctx.fillStyle = pct < 30 ? 'rgba(255,110,110,0.98)' : 'rgba(210,170,255,0.95)';
-                        ctx.fillText(`⚡ 자기장 ${pct}%`, canvas.width / 2, 52);
-                    }
-                    ctx.restore();
-                }
-            }
-            */
             
             // ── 무희 장판 (플레이어 아래에 표시) ──
             for (const ownerId in playerMuhuiZones) {
@@ -4864,8 +4787,11 @@
                 // 어쌔신 은신: 내가 아닌 플레이어에게 보이지 않음
                 if (!isMe && player.stealthed) continue;
                 
-                const screenX = player.x - cameraX_r;
-                const screenY = player.y - cameraY_r;
+                // 다른 플레이어는 보간 위치 사용, 내 플레이어는 실시간 위치 사용
+                const renderX = isMe ? player.x : (playerRenderPos[id] ? playerRenderPos[id].x : player.x);
+                const renderY = isMe ? player.y : (playerRenderPos[id] ? playerRenderPos[id].y : player.y);
+                const screenX = renderX - cameraX_r;
+                const screenY = renderY - cameraY_r;
                 
                 if (screenX < -PLAYER_SIZE || screenX > canvas.width * _z + PLAYER_SIZE ||
                     screenY < -PLAYER_SIZE || screenY > canvas.height * _z + PLAYER_SIZE) {
@@ -5092,14 +5018,9 @@
                 if (owner && !owner.isMe && owner.stealthed && id !== myPlayerId) continue;
                 const progress = 1 - stab.frames / stab.totalFrames;
                 const stabLen = ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
-                let scx, scy;
-                if (id === myPlayerId && players[myPlayerId]) {
-                    scx = players[myPlayerId].x + PLAYER_SIZE / 2 - cameraX_r;
-                    scy = players[myPlayerId].y + PLAYER_SIZE / 2 - cameraY_r;
-                } else {
-                    scx = stab.x - cameraX_r;
-                    scy = stab.y - cameraY_r;
-                }
+                // 항상 공격 시작 당시 저장된 위치(stab.x/y) 기준 렌더링
+                const scx = stab.x - cameraX_r;
+                const scy = stab.y - cameraY_r;
                 ctx.beginPath();
                 ctx.moveTo(scx, scy);
                 ctx.lineTo(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen);
@@ -5128,8 +5049,10 @@
                 const sw = playerSwings[id];
                 const owner = players[id];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
-                const sx = owner.x - cameraX_r + PLAYER_SIZE / 2;
-                const sy = owner.y - cameraY_r + PLAYER_SIZE / 2;
+                // ox/oy: 공격 시작 당시 위치 기준 (없으면 보간 위치 fallback)
+                const _rp_sw = playerRenderPos[id];
+                const sx = (sw.ox !== undefined ? sw.ox : (_rp_sw ? _rp_sw.x : owner.x + PLAYER_SIZE / 2)) - cameraX_r;
+                const sy = (sw.oy !== undefined ? sw.oy : (_rp_sw ? _rp_sw.y : owner.y + PLAYER_SIZE / 2)) - cameraY_r;
                 const isSpinAtk = (sw.arc >= Math.PI * 1.9);
                 const halfArc = sw.arc / 2;
                 const progress = 1 - sw.frames / sw.totalFrames;
@@ -5160,9 +5083,10 @@
                 const h = playerHammers[id];
                 const owner = players[id];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
-                // 내 플레이어든 상대방이든 항상 실시간 owner 위치 기준으로 렌더링
-                const cx = owner.x + PLAYER_SIZE / 2 - cameraX_r;
-                const cy = owner.y + PLAYER_SIZE / 2 - cameraY_r;
+                // 공격 시작 당시 저장된 위치(h.x/y) 기준으로 렌더링 (어긋남 방지)
+                const _rp_h = playerRenderPos[id];
+                const cx = (h.x !== undefined ? h.x : (_rp_h ? _rp_h.x : owner.x + PLAYER_SIZE / 2)) - cameraX_r;
+                const cy = (h.y !== undefined ? h.y : (_rp_h ? _rp_h.y : owner.y + PLAYER_SIZE / 2)) - cameraY_r;
 
                 const elapsed = h.totalFrames - h.frames;
                 const progress = elapsed / h.totalFrames;
@@ -5229,8 +5153,10 @@
 
                 const owner = players[s.ownerId];
                 if (!owner || owner.isSpectator || owner.health <= 0) continue;
-                const sx = owner.x + PLAYER_SIZE / 2 - cameraX_r;
-                const sy = owner.y + PLAYER_SIZE / 2 - cameraY_r;
+                // ox/oy: 공격 시작 당시 위치 기준 (없으면 보간 위치 fallback)
+                const _rp_sl = playerRenderPos[s.ownerId];
+                const sx = (s.ox !== undefined ? s.ox : (_rp_sl ? _rp_sl.x : owner.x + PLAYER_SIZE / 2)) - cameraX_r;
+                const sy = (s.oy !== undefined ? s.oy : (_rp_sl ? _rp_sl.y : owner.y + PLAYER_SIZE / 2)) - cameraY_r;
                 const progress = s.progress !== undefined ? s.progress : (1 - s.frames / (s.totalFrames || SAMURAI_SLASH_TOTAL));
 
                 ctx.save();
