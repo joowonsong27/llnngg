@@ -782,7 +782,7 @@
             <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
             <button id="nicknameNextBtn">다음</button>
             <p class="error" id="nicknameError"></p>
-            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.5</span>
+            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.6</span>
         </div>
     </div>
 
@@ -2013,22 +2013,40 @@
                 playersRef.child(myPlayerId).set(playerData);
                 playersRef.child(myPlayerId).onDisconnect().remove();
                 
-                // 방장 결정: 새 방 생성이거나 gameState의 hostId가 비어있으면 방장 승계
-                gameStateRef.once('value', gSnap => {
-                    const gst = gSnap.val();
-                    const needHost = isCreating || !gst || !gst.hostId;
-                    if (needHost) {
-                        isHost = true;
-                        gameStateRef.update({
+                // 방장 결정: Firebase Transaction으로 원자적 처리 (동시 입장 시 한 명만 방장)
+                gameStateRef.transaction(current => {
+                    if (!current) {
+                        // 방 데이터 없음 → 초기화하며 방장 등록
+                        return {
                             status: GAME_STATUS.LOBBY,
                             hostId: myPlayerId,
                             hostName: myNickname,
                             createdAt: Date.now()
-                        });
-                        if (isCreating) gameStateRef.onDisconnect().remove();
-                        document.getElementById('hostIndicator').style.display = 'block';
-                        document.getElementById('startBtn').style.display = 'inline-block';
-                        document.getElementById('practiceBtn').style.display = 'inline-block';
+                        };
+                    }
+                    // hostId가 비어있거나 현재 방에 없는 플레이어면 방장 승계
+                    if (!current.hostId) {
+                        current.hostId = myPlayerId;
+                        current.hostName = myNickname;
+                        current.status = GAME_STATUS.LOBBY;
+                        return current;
+                    }
+                    // 이미 방장이 있으면 변경 없음 (undefined 반환 = 트랜잭션 취소)
+                    return undefined;
+                }, (error, committed, snapshot) => {
+                    if (!error && snapshot) {
+                        const st = snapshot.val();
+                        if (st && st.hostId === myPlayerId) {
+                            // 내가 방장으로 확정됨
+                            isHost = true;
+                            if (isCreating) gameStateRef.onDisconnect().remove();
+                            document.getElementById('hostIndicator').style.display = 'block';
+                            document.getElementById('startBtn').style.display = 'inline-block';
+                            document.getElementById('practiceBtn').style.display = 'inline-block';
+                        } else {
+                            // 방장이 이미 있음 → 방장 아님
+                            isHost = false;
+                        }
                     }
                 });
                 
@@ -2047,7 +2065,14 @@
         }
 
         // ========== 대기실 리스너 ==========
+        let _lobbyListenersSetup = false;
         function setupLobbyListeners() {
+            // 이미 등록된 리스너 해제 후 재등록 (중복 방지)
+            if (_lobbyListenersSetup) {
+                try { playersRef && playersRef.off(); } catch(e) {}
+                try { gameStateRef && gameStateRef.off(); } catch(e) {}
+            }
+            _lobbyListenersSetup = true;
             // 플레이어 목록 감지
             playersRef.on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -2097,19 +2122,64 @@
                 } else if (isHost) {
                     document.getElementById('startBtn').disabled = true;
                 }
+
+                // ★ 방장이 목록에 없으면 자동 재배정 (방장만 처리)
+                if (isHost && myPlayerId) {
+                    gameStateRef.once('value', gSnap => {
+                        const gst = gSnap.val();
+                        if (!gst) return;
+                        const hostId = gst.hostId;
+                        // Firebase hostId가 현재 players에 없으면 내가 방장으로 유지
+                        if (!hostId || !data[hostId]) {
+                            if (gst.hostId !== myPlayerId) {
+                                gameStateRef.update({ hostId: myPlayerId, hostName: myNickname });
+                            }
+                        }
+                    });
+                } else if (!isHost && myPlayerId) {
+                    // 비방장 플레이어: hostId 플레이어가 목록에 없고 내가 가장 오래된 플레이어면 방장 승계 시도
+                    gameStateRef.once('value', gSnap => {
+                        const gst = gSnap.val();
+                        if (!gst || gst.status === GAME_STATUS.PLAYING) return;
+                        const hostId = gst.hostId;
+                        if (!hostId || !data[hostId]) {
+                            // 방장 없음 → timestamp 기준 최선임자가 Transaction으로 승계
+                            const arr = Object.values(data).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+                            if (arr.length > 0 && arr[0].id === myPlayerId) {
+                                gameStateRef.transaction(cur => {
+                                    if (!cur || !cur.hostId || !data[cur.hostId]) {
+                                        if (!cur) cur = {};
+                                        cur.hostId = myPlayerId;
+                                        cur.hostName = myNickname;
+                                        cur.status = GAME_STATUS.LOBBY;
+                                        return cur;
+                                    }
+                                    return undefined; // 이미 방장 있으면 취소
+                                });
+                            }
+                        }
+                    });
+                }
             });
 
             // ★ 파티원용: gameState 변경 감지 → PLAYING 전환 & 방장 승계 UI
             gameStateRef.on('value', (snapshot) => {
                 const state = snapshot.val();
                 if (!state) return;
-                // 방장 승계: hostId가 내 ID로 변경되면 방장 UI 활성화
+                // 방장 동기화: Firebase hostId 기준으로 방장 UI 갱신
                 if (state.hostId === myPlayerId && !isHost) {
+                    // 내가 방장으로 승격
                     isHost = true;
                     document.getElementById('hostIndicator').style.display = 'block';
                     document.getElementById('startBtn').style.display = 'inline-block';
                     document.getElementById('practiceBtn').style.display = 'inline-block';
                     document.getElementById('lobbyTitle').textContent = `🏠 ${myNickname}의 방`;
+                } else if (state.hostId && state.hostId !== myPlayerId && isHost) {
+                    // 내가 방장인데 Firebase에 다른 방장이 있으면 → 방장 해제
+                    isHost = false;
+                    document.getElementById('hostIndicator').style.display = 'none';
+                    document.getElementById('startBtn').style.display = 'none';
+                    document.getElementById('practiceBtn').style.display = 'none';
                 }
                 if (state.status === GAME_STATUS.PLAYING && gameStatus !== GAME_STATUS.PLAYING) {
                     // 스폰 좌표가 Firebase에 반영될 때까지 잠깐 대기 후 시작
@@ -2215,6 +2285,7 @@
             gameStateRef.off();
             // 리스너 플래그 리셋 — 게임 시작 시 재등록 허용
             _effectListenersSetup = false;
+            _lobbyListenersSetup = false; // 대기실 복귀 시 재등록 허용
 
 
             // ★ 내 이전 세션 잔여 데이터 정리 (비동기, 블로킹 없음)
@@ -2410,6 +2481,7 @@
                 _effectListenersSetup = false;
                 _inputListenersSetup = false;
                 _gameLoopRunning = false;
+                _lobbyListenersSetup = false;
                 try { playersRef && playersRef.off(); } catch(e) {}
                 try { gameStateRef && gameStateRef.off(); } catch(e) {}
                 try { bulletsRef && bulletsRef.off(); } catch(e) {}
@@ -2733,7 +2805,7 @@
                 clearTimeout(autoTimer);
 
                 // ① 모든 Firebase 리스너 해제 (location.reload 트리거 방지)
-                _effectListenersSetup = false; _inputListenersSetup = false; _gameLoopRunning = false;
+                _effectListenersSetup = false; _inputListenersSetup = false; _gameLoopRunning = false; _lobbyListenersSetup = false;
                 try { playersRef && playersRef.off(); } catch(e) {}
                 try { gameStateRef && gameStateRef.off(); } catch(e) {}
                 try { bulletsRef && bulletsRef.off(); } catch(e) {}
@@ -2820,9 +2892,13 @@
                         database.ref('rooms/' + savedRoom + '/muhuiZones').remove(),
                         database.ref('rooms/' + savedRoom + '/parryHits').remove(),
                     ]).catch(() => {});
-                    // gameState LOBBY 리셋 후 대기실 재입장
+                    // gameState LOBBY 리셋 후 대기실 재입장 (hostId는 joinLobby Transaction이 결정)
                     gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
-                        .then(() => joinLobby(false))
+                        .then(() => {
+                            // 짧은 지연으로 동시 입장 시 Transaction 충돌 분산
+                            const delay = Math.floor(Math.random() * 200);
+                            setTimeout(() => joinLobby(false), delay);
+                        })
                         .catch(() => joinLobby(false));
                 } else {
                     showScreen('roomScreen');
