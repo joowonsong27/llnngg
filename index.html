@@ -774,12 +774,13 @@
 <body>
     <!-- 닉네임 입력 화면 -->
     <div id="nicknameScreen" class="screen active">
-        <div class="box">
+        <div class="box" style="position: relative;">
             <h1>⚔️ LNG OF LEGEND</h1>
             <p style="color: #aaa; margin-bottom: 20px;">닉네임을 입력하세요</p>
             <input type="text" id="nicknameInput" placeholder="닉네임 입력 (최대 12자)" maxlength="12">
             <button id="nicknameNextBtn">다음</button>
             <p class="error" id="nicknameError"></p>
+            <span style="position: absolute; bottom: 10px; right: 14px; font-size: 11px; color: #555; user-select: none;">v0.0.0</span>
         </div>
     </div>
 
@@ -1855,6 +1856,19 @@
                 const listDiv = document.getElementById('roomList');
                 listDiv.innerHTML = '';
 
+                // ★ 오래된/비어있는 룸 자동 정리 (룸 파일 누적 방지)
+                const now = Date.now();
+                Object.entries(allRooms).forEach(([roomId, room]) => {
+                    const hasPlayers = room.players && Object.keys(room.players).length > 0;
+                    const isPlaying = room.gameState && room.gameState.status === GAME_STATUS.PLAYING;
+                    const createdAt = room.gameState && room.gameState.createdAt;
+                    // 플레이어가 없는 방 또는 24시간 이상 된 방 삭제
+                    const isStale = createdAt && (now - createdAt > 24 * 60 * 60 * 1000);
+                    if (!hasPlayers || isStale) {
+                        database.ref('rooms/' + roomId).remove().catch(() => {});
+                    }
+                });
+
                 const lobbyRooms = Object.entries(allRooms).filter(([, r]) =>
                     r.gameState && r.gameState.status === GAME_STATUS.LOBBY
                     && r.players && Object.keys(r.players).length > 0
@@ -2013,7 +2027,8 @@
                         gameStateRef.update({
                             status: GAME_STATUS.LOBBY,
                             hostId: myPlayerId,
-                            hostName: myNickname
+                            hostName: myNickname,
+                            createdAt: Date.now()
                         });
                         if (isCreating) gameStateRef.onDisconnect().remove();
                         document.getElementById('hostIndicator').style.display = 'block';
@@ -2237,9 +2252,17 @@
                     }
                 });
             } else {
+                // 일반 게임 모드: 플레이어 데이터 제거 + 호스트는 방 전체 onDisconnect 등록
                 playersRef.child(myPlayerId).onDisconnect().remove();
+                if (isHost && currentRoomId) {
+                    // 호스트 접속 끊기면 방 전체 삭제 (룸 파일 누적 방지)
+                    database.ref('rooms/' + currentRoomId).onDisconnect().remove();
+                }
                 window.addEventListener('beforeunload', () => {
                     playersRef.child(myPlayerId).remove();
+                    if (isHost && currentRoomId) {
+                        database.ref('rooms/' + currentRoomId).remove();
+                    }
                 });
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'hidden') {
@@ -2419,9 +2442,23 @@
                 document.getElementById('hostIndicator').style.display = 'none';
 
                 if (!wasPractice && savedRoom) {
-                    // ④ 같은 방 대기실로 복귀
+                    // ④ 같은 방 대기실로 복귀 — 게임 잔여 데이터 정리
                     currentRoomId = savedRoom;
                     initRoomRefs(savedRoom);
+                    Promise.all([
+                        database.ref('rooms/' + savedRoom + '/bullets').remove(),
+                        database.ref('rooms/' + savedRoom + '/particles').remove(),
+                        database.ref('rooms/' + savedRoom + '/swings').remove(),
+                        database.ref('rooms/' + savedRoom + '/stabs').remove(),
+                        database.ref('rooms/' + savedRoom + '/smokes').remove(),
+                        database.ref('rooms/' + savedRoom + '/hitEffects').remove(),
+                        database.ref('rooms/' + savedRoom + '/spellEffects').remove(),
+                        database.ref('rooms/' + savedRoom + '/samuraiSlashes').remove(),
+                        database.ref('rooms/' + savedRoom + '/smithHammers').remove(),
+                        database.ref('rooms/' + savedRoom + '/jumongArrows').remove(),
+                        database.ref('rooms/' + savedRoom + '/muhuiZones').remove(),
+                        database.ref('rooms/' + savedRoom + '/parryHits').remove(),
+                    ]).catch(() => {});
                     gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
                         .then(() => joinLobby(false))
                         .catch(() => joinLobby(false));
@@ -2752,9 +2789,24 @@
                 document.getElementById('hostIndicator').style.display = 'none';
 
                 if (savedRoom) {
-                    // ⑥ 같은 방 대기실로 복귀
+                    // ⑥ 같은 방 대기실로 복귀 — 게임 잔여 데이터 정리 후 재입장
                     currentRoomId = savedRoom;
                     initRoomRefs(savedRoom);
+                    // 게임 중 생성된 Firebase 서브노드 일괄 정리 (룸 파일 누적 방지)
+                    Promise.all([
+                        database.ref('rooms/' + savedRoom + '/bullets').remove(),
+                        database.ref('rooms/' + savedRoom + '/particles').remove(),
+                        database.ref('rooms/' + savedRoom + '/swings').remove(),
+                        database.ref('rooms/' + savedRoom + '/stabs').remove(),
+                        database.ref('rooms/' + savedRoom + '/smokes').remove(),
+                        database.ref('rooms/' + savedRoom + '/hitEffects').remove(),
+                        database.ref('rooms/' + savedRoom + '/spellEffects').remove(),
+                        database.ref('rooms/' + savedRoom + '/samuraiSlashes').remove(),
+                        database.ref('rooms/' + savedRoom + '/smithHammers').remove(),
+                        database.ref('rooms/' + savedRoom + '/jumongArrows').remove(),
+                        database.ref('rooms/' + savedRoom + '/muhuiZones').remove(),
+                        database.ref('rooms/' + savedRoom + '/parryHits').remove(),
+                    ]).catch(() => {});
                     // gameState LOBBY 리셋 후 대기실 재입장
                     gameStateRef.update({ status: GAME_STATUS.LOBBY, hostId: null, hostName: null })
                         .then(() => joinLobby(false))
@@ -4365,20 +4417,21 @@
             }
         }
 
-        // ========== 자기장 ==========
+        // ========== 자기장 (비활성화 - 성능 문제로 주석 처리) ==========
         function getZoneRadius() {
             const elapsed = Date.now() - zoneGameStartTime;
-            if (elapsed < ZONE_DELAY) return ZONE_MAX_R; // 대기 중 — 풀사이즈
+            if (elapsed < ZONE_DELAY) return ZONE_MAX_R;
             const shrinkElapsed = Math.min(elapsed - ZONE_DELAY, ZONE_SHRINK_DUR);
-            const t = shrinkElapsed / ZONE_SHRINK_DUR; // 0 → 1
-            // ease-in으로 점점 빠르게 좁아짐
+            const t = shrinkElapsed / ZONE_SHRINK_DUR;
             return ZONE_MAX_R * (1 - t * t) * (1 - ZONE_MIN_R / ZONE_MAX_R) + ZONE_MIN_R;
         }
 
         function updateZone() {
+            // 자기장 비활성화 — 성능 개선을 위해 주석 처리
+            /*
             if (!myPlayerId || !players[myPlayerId] || !isAlive) return;
             const r = getZoneRadius();
-            if (r >= ZONE_MAX_R) return; // 아직 안 좁아짐
+            if (r >= ZONE_MAX_R) return;
             const cx = MAP_W / 2;
             const cy = MAP_H / 2;
             const myPlayer = players[myPlayerId];
@@ -4386,7 +4439,6 @@
             const py = myPlayer.y + PLAYER_SIZE / 2;
             const dist = Math.sqrt((px - cx)**2 + (py - cy)**2);
             if (dist > r) {
-                // 자기장 밖 — 프레임당 누적, 1초마다 피해
                 zoneDmgAccum += 1000 / 60;
                 if (zoneDmgAccum >= 1000) {
                     zoneDmgAccum -= 1000;
@@ -4395,6 +4447,7 @@
             } else {
                 zoneDmgAccum = 0;
             }
+            */
         }
 
         // ========== 총알 업데이트 ==========
@@ -4689,7 +4742,8 @@
             if (mapScreenX + MAP_W < _vW) ctx.fillRect(mapScreenX + MAP_W, mapScreenY, _vW - mapScreenX - MAP_W, MAP_H);
             ctx.restore();
 
-            // ── 자기장 렌더링 (NORMAL 모드) ──
+            // ── 자기장 렌더링 비활성화 (성능 문제로 주석 처리) ──
+            /*
             if (gameMode === GAME_MODE.NORMAL) {
                 const zr = getZoneRadius();
                 if (zr < ZONE_MAX_R) {
@@ -4751,6 +4805,7 @@
                     ctx.restore();
                 }
             }
+            */
             
             // ── 무희 장판 (플레이어 아래에 표시) ──
             for (const ownerId in playerMuhuiZones) {
