@@ -2260,19 +2260,25 @@
             canvas.addEventListener('mouseup', handleMouseUp);
             canvas.addEventListener('contextmenu', handleRightClick);
 
-            // 플레이어 실시간 동기화
+            // 플레이어 실시간 동기화 + 승리 조건 체크
             playersRef.on('value', (snapshot) => {
                 const data = snapshot.val();
-                for (let id in players) {
-                    if (!data || !data[id]) delete players[id];
-                }
-                if (data) {
-                    for (let id in data) players[id] = data[id];
-                }
+                for (let id in players) { if (!data || !data[id]) delete players[id]; }
+                if (data) { for (let id in data) players[id] = data[id]; }
                 if ((isSpectating || !isAlive) && (!spectateTargetId || !players[spectateTargetId] || players[spectateTargetId].isSpectator)) {
                     pickRandomSpectateTarget();
                 }
                 updatePlayerList();
+                // 승리 조건 체크 (일반 모드)
+                if (gameMode === GAME_MODE.NORMAL && data) {
+                    const alivePlayers = Object.keys(data).filter(id =>
+                        id !== DUMMY_ID && !data[id].isSpectator && data[id].health > 0
+                    );
+                    if (alivePlayers.length === 1 && Object.keys(data).filter(i => i !== DUMMY_ID).length >= 2) {
+                        const winner = data[alivePlayers[0]];
+                        if (winner) showVictoryScreen(winner.nickname);
+                    }
+                }
             });
 
             // 내 HP 변경 감지 → 사망 처리 / 연습 모드 부활
@@ -2335,23 +2341,7 @@
                 if (state.mode) gameMode = state.mode;
             });
 
-            // 플레이어 수 감지 → 승리 조건 체크 (일반 모드만)
-            playersRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (gameMode !== GAME_MODE.NORMAL) return;
-                if (!data) return;
 
-                const alivePlayers = Object.keys(data).filter(id =>
-                    id !== DUMMY_ID && !data[id].isSpectator && data[id].health > 0
-                );
-
-                // 2인 이상으로 시작 → 최후 1인 남으면 승리
-                if (alivePlayers.length === 1 && Object.keys(data).filter(i => i !== DUMMY_ID).length >= 2) {
-                    const winnerId = alivePlayers[0];
-                    const winner = data[winnerId];
-                    showVictoryScreen(winner.nickname);
-                }
-            });
 
             // 나가기 버튼 (대기실로)
             document.getElementById('exitToLobbyBtn').onclick = () => {
@@ -2451,7 +2441,6 @@
                 b.y += b.vy * frames;
                 bulletIds.add(b.id);
                 bullets.push(b);
-                console.log(`[총알 수신] from ${b.ownerId}, elapsed: ${elapsed.toFixed(2)}s`);
             });
             bulletsRef.on('child_removed', (snapshot) => {
                 const b = snapshot.val();
@@ -2488,7 +2477,7 @@
                 const ef = snapshot.val();
                 if (!ef) return;
                 if (ef.ownerId === myPlayerId) return; // 발사자는 이미 로컬 생성
-                if (Date.now() - ef.createdAt > 2000) return;
+                if (Date.now() - ef.createdAt > 4000) return;
                 _addHitEffect(ef);
                 // 피격 플래시 (내가 맞은 위치 근처면)
                 if (players[myPlayerId]) {
@@ -2505,7 +2494,7 @@
             swingsRef.on('child_added', (snapshot) => {
                 const s = snapshot.val();
                 if (!s || s.ownerId === myPlayerId) return;
-                if (Date.now() - s.createdAt > 2000) return;
+                if (Date.now() - s.createdAt > 4000) return;
                 playerSwings[s.ownerId] = {
                     ...s,
                     frames: s.totalFrames,
@@ -2521,7 +2510,7 @@
             stabsRef.on('child_added', (snapshot) => {
                 const s = snapshot.val();
                 if (!s || s.ownerId === myPlayerId) return;
-                if (Date.now() - s.createdAt > 2000) return;
+                if (Date.now() - s.createdAt > 4000) return;
                 playerStabs[s.ownerId] = { ...s, frames: s.totalFrames };
             });
             stabsRef.on('child_removed', (snapshot) => {
@@ -2543,7 +2532,7 @@
             smithHammersRef.on('child_added', (snapshot) => {
                 const h = snapshot.val();
                 if (!h || h.ownerId === myPlayerId) return;
-                if (Date.now() - h.createdAt > 2000) return;
+                if (Date.now() - h.createdAt > 4000) return;
                 playerHammers[h.ownerId] = { ...h, frames: h.totalFrames };
             });
             smithHammersRef.on('child_removed', (snapshot) => {
@@ -2593,7 +2582,7 @@
             samuraiSlashesRef.on('child_added', (snapshot) => {
                 const s = snapshot.val();
                 if (!s || s.ownerId === myPlayerId) return;
-                if (Date.now() - s.createdAt > 2000) return;
+                if (Date.now() - s.createdAt > 4000) return;
                 const key = snapshot.key;
                 playerSamuraiSlashes[key] = {
                     ...s,
@@ -2601,7 +2590,6 @@
                     progress: 0,
                     type: s.type || 'slash'
                 };
-                console.log(`[사무라이 슬래시 수신] from ${s.ownerId}, key: ${key}`);
             });
             samuraiSlashesRef.on('child_removed', (snapshot) => {
                 delete playerSamuraiSlashes[snapshot.key];
@@ -3650,7 +3638,7 @@
 
         // 파티클 업데이트 (최대 200개 제한)
         function updateParticles() {
-            if (particles.length > 200) particles.splice(0, particles.length - 200);
+            if (particles.length > 120) particles.splice(0, particles.length - 120);
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
@@ -3781,7 +3769,6 @@
                 skillBulletCount = 0;
                 lastSkillBullet = Date.now();
                 
-                console.log('연사 스킬 사용!');
             }
         }
 
@@ -4678,65 +4665,59 @@
             if (gameMode === GAME_MODE.NORMAL) {
                 const zr = getZoneRadius();
                 if (zr < ZONE_MAX_R) {
-                    const zcx = MAP_W / 2 - cameraX_r; // 맵 중심 스크린 좌표
+                    const zcx = MAP_W / 2 - cameraX_r;
                     const zcy = MAP_H / 2 - cameraY_r;
                     const now_z = Date.now();
-                    const pulse = 0.12 * Math.sin(now_z / 300);
 
-                    // 자기장 바깥 영역 — 보라/파란 반투명 오버레이 (원형 클리핑 역이용)
+                    // 자기장 바깥 오버레이 — evenodd로 원 안쪽 구멍
                     ctx.save();
-                    // 전체 캔버스를 채우고 안쪽(자기장 원)을 도려냄
                     ctx.beginPath();
                     ctx.rect(0, 0, _vW, _vH);
-                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2, true); // 반시계 = 구멍
-                    ctx.fillStyle = `rgba(80, 0, 180, ${0.38 + pulse})`;
+                    ctx.arc(zcx, zcy, zr, 0, Math.PI * 2, true);
+                    ctx.fillStyle = 'rgba(70, 0, 160, 0.30)';
                     ctx.fill('evenodd');
 
-                    // 자기장 경계 링
+                    // 경계 링 — shadow 없이 두 겹
+                    ctx.beginPath();
+                    ctx.arc(zcx, zcy, zr + 3, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(190, 100, 255, 0.35)';
+                    ctx.lineWidth = 10;
+                    ctx.stroke();
                     ctx.beginPath();
                     ctx.arc(zcx, zcy, zr, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(160, 80, 255, ${0.85 + pulse})`;
-                    ctx.lineWidth = 4;
-                    ctx.shadowColor = '#aa44ff';
-                    ctx.shadowBlur = 3;
+                    ctx.strokeStyle = 'rgba(200, 90, 255, 0.9)';
+                    ctx.lineWidth = 2;
                     ctx.stroke();
-                    ctx.shadowBlur = 0;
 
-                    // 자기장 밖에 있을 때 화면 테두리 경고
+                    // 자기장 밖 경고 테두리
                     if (myPlayerId && players[myPlayerId] && isAlive) {
                         const me = players[myPlayerId];
                         const mpx = me.x + PLAYER_SIZE / 2;
                         const mpy = me.y + PLAYER_SIZE / 2;
                         const mdist = Math.sqrt((mpx - MAP_W/2)**2 + (mpy - MAP_H/2)**2);
                         if (mdist > zr) {
-                            const warnAlpha = 0.25 + 0.2 * Math.abs(Math.sin(now_z / 200));
-                            ctx.beginPath();
-                            ctx.rect(0, 0, _vW, _vH);
-                            ctx.fillStyle = `rgba(160, 0, 255, ${warnAlpha})`;
-                            ctx.fill();
+                            const warnAlpha = 0.35 + 0.2 * Math.abs(Math.sin(now_z / 220));
+                            ctx.strokeStyle = `rgba(180, 0, 255, ${warnAlpha})`;
+                            ctx.lineWidth = 20;
+                            ctx.strokeRect(0, 0, _vW, _vH);
                         }
                     }
                     ctx.restore();
 
-                    // 자기장 카운트다운 HUD
+                    // 자기장 HUD
                     const elapsed_z = now_z - zoneGameStartTime;
                     ctx.save();
                     ctx.font = 'bold 14px Malgun Gothic';
                     ctx.textAlign = 'center';
+                    ctx.shadowBlur = 0;
                     if (elapsed_z < ZONE_DELAY) {
-                        // 대기 중 — 카운트다운
                         const countdown = Math.ceil((ZONE_DELAY - elapsed_z) / 1000);
-                        ctx.fillStyle = 'rgba(200,160,255,0.9)';
-                        ctx.shadowColor = '#aa44ff';
-                        ctx.shadowBlur = 3;
+                        ctx.fillStyle = 'rgba(210,170,255,0.95)';
                         ctx.fillText(`⚡ 자기장 ${countdown}초 후 시작`, canvas.width / 2, 52);
                     } else {
-                        // 좁아지는 중
                         const t = Math.min((elapsed_z - ZONE_DELAY) / ZONE_SHRINK_DUR, 1);
                         const pct = Math.round((1 - t) * 100);
-                        ctx.fillStyle = pct < 30 ? 'rgba(255,100,100,0.95)' : 'rgba(200,160,255,0.9)';
-                        ctx.shadowColor = '#aa44ff';
-                        ctx.shadowBlur = 3;
+                        ctx.fillStyle = pct < 30 ? 'rgba(255,110,110,0.98)' : 'rgba(210,170,255,0.95)';
                         ctx.fillText(`⚡ 자기장 ${pct}%`, canvas.width / 2, 52);
                     }
                     ctx.restore();
@@ -4829,28 +4810,14 @@
                 const hpBarY = screenY - 22;
                 const healthPercent = Math.max(0, player.health / player.maxHealth);
 
-                // 그림자
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                // HP 바 (solid color — gradient 생성 비용 제거)
+                ctx.fillStyle = '#111';
                 ctx.fillRect(hpBarX - 1, hpBarY - 1, hpBarW + 2, hpBarH + 2);
-                // 배경
                 ctx.fillStyle = '#1a0000';
                 ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
-                // 체력 색상 그라데이션
-                const hpGrad = ctx.createLinearGradient(hpBarX, hpBarY, hpBarX + hpBarW * healthPercent, hpBarY);
-                if (healthPercent > 0.5) {
-                    hpGrad.addColorStop(0, '#00e676');
-                    hpGrad.addColorStop(1, '#69f0ae');
-                } else if (healthPercent > 0.25) {
-                    hpGrad.addColorStop(0, '#ff9800');
-                    hpGrad.addColorStop(1, '#ffcc02');
-                } else {
-                    hpGrad.addColorStop(0, '#e53935');
-                    hpGrad.addColorStop(1, '#ff5252');
-                }
-                ctx.fillStyle = hpGrad;
+                ctx.fillStyle = healthPercent > 0.5 ? '#00e676' : healthPercent > 0.25 ? '#ff9800' : '#e53935';
                 ctx.fillRect(hpBarX, hpBarY, hpBarW * healthPercent, hpBarH);
-                // 테두리
-                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
 
@@ -4935,63 +4902,44 @@
 
                 // 사무라이 패링 오라
                 if (player.samuraiParrying) {
-                    ctx.save();
                     const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 60);
                     ctx.globalAlpha = pulse;
                     ctx.strokeStyle = '#00cfff';
                     ctx.lineWidth = 5;
-                    ctx.shadowColor = '#00cfff';
-                    ctx.shadowBlur = 4;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 9, 0, Math.PI * 2);
                     ctx.stroke();
-                    ctx.restore();
-                    // 패링 텍스트 (대장장이 강화와 같은 위치)
-                    ctx.save();
+                    ctx.globalAlpha = stealthAlpha;
                     ctx.fillStyle = '#00cfff';
                     ctx.font = 'bold 13px Malgun Gothic';
                     ctx.textAlign = 'center';
-                    ctx.shadowColor = '#00cfff';
-                    ctx.shadowBlur = 3;
                     ctx.fillText('⚔ 패링', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
-                    ctx.restore();
                 }
                 
-                // 워리어 스킬 오라 (Firebase warriorSkillActive 기반 → 모든 플레이어에 보임)
+                // 워리어 스킬 오라
                 if (player.warriorSkillActive) {
-                    ctx.save();
                     ctx.globalAlpha = 0.3 + 0.1 * Math.sin(Date.now() / 120);
                     ctx.strokeStyle = '#ff4444';
                     ctx.lineWidth = 4;
-                    ctx.shadowColor = '#ff0000';
-                    ctx.shadowBlur = 7;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 6, 0, Math.PI * 2);
                     ctx.stroke();
-                    ctx.restore();
+                    ctx.globalAlpha = stealthAlpha;
                 }
 
                 // 대장장이 강화 경직 오라
                 if (player.smithForging) {
-                    ctx.save();
                     ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Date.now() / 80);
                     ctx.strokeStyle = '#ffd700';
                     ctx.lineWidth = 5;
-                    ctx.shadowColor = '#ff8c00';
-                    ctx.shadowBlur = 3;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE / 2, PLAYER_SIZE / 2 + 8, 0, Math.PI * 2);
                     ctx.stroke();
-                    ctx.restore();
-                    // 경직 텍스트
-                    ctx.save();
+                    ctx.globalAlpha = stealthAlpha;
                     ctx.fillStyle = '#ffd700';
                     ctx.font = 'bold 13px Malgun Gothic';
                     ctx.textAlign = 'center';
-                    ctx.shadowColor = '#ff8c00';
-                    ctx.shadowBlur = 3;
                     ctx.fillText('⚒ 강화 중...', screenX + PLAYER_SIZE / 2, screenY + PLAYER_SIZE + 35);
-                    ctx.restore();
                 }
 
                 // 본인 표시
@@ -5028,45 +4976,39 @@
                 // 분노 (붉은 오라)
                 const showRage = isMe ? rageActive : player.rageActive;
                 if (showRage) {
-                    ctx.save();
                     const rPulse = 0.4 + 0.3 * Math.sin(Date.now() / 80);
-                    ctx.strokeStyle = `rgba(255,60,0,${rPulse + 0.3})`;
+                    ctx.globalAlpha = rPulse + 0.3;
+                    ctx.strokeStyle = '#ff3c00';
                     ctx.lineWidth = 3;
-                    ctx.shadowColor = '#ff4400';
-                    ctx.shadowBlur = 7;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.7 + rPulse*6, 0, Math.PI*2);
                     ctx.stroke();
-                    ctx.restore();
                 }
                 // 유체화 (파란 잔상 링)
                 const showFluid = isMe ? fluidActive : player.fluidActive;
                 if (showFluid) {
-                    ctx.save();
                     const fPulse = 0.3 + 0.3 * Math.sin(Date.now() / 100);
-                    ctx.strokeStyle = `rgba(68,170,255,${fPulse + 0.3})`;
+                    ctx.globalAlpha = fPulse + 0.3;
+                    ctx.strokeStyle = '#44aaff';
                     ctx.lineWidth = 2;
-                    ctx.shadowColor = '#44aaff';
-                    ctx.shadowBlur = 2;
                     ctx.beginPath();
                     ctx.arc(screenX + PLAYER_SIZE/2, screenY + PLAYER_SIZE/2, PLAYER_SIZE * 0.75, 0, Math.PI*2);
                     ctx.stroke();
-                    ctx.restore();
                 }
 
                 // 어쌔신 은신 복원
-                ctx.restore();
+                ctx.restore(); // stealthAlpha restore
             }
 
             // ── 어쌔신 찌르기 (모든 플레이어 playerStabs 기반) ──
+            ctx.strokeStyle = '#cc99ff';
+            ctx.lineWidth = 3;
             for (const id in playerStabs) {
                 const stab = playerStabs[id];
                 const owner = players[id];
-                // 은신 중인 상대방 찌르기는 숨김 (단, 자신과 관전자는 표시)
                 if (owner && !owner.isMe && owner.stealthed && id !== myPlayerId) continue;
                 const progress = 1 - stab.frames / stab.totalFrames;
                 const stabLen = ASSASSIN_STAB_RANGE * Math.min(1, progress * 2);
-                // 내 찌르기는 실시간 위치 사용, 다른 플레이어는 Firebase 전송 위치 사용
                 let scx, scy;
                 if (id === myPlayerId && players[myPlayerId]) {
                     scx = players[myPlayerId].x + PLAYER_SIZE / 2 - cameraX_r;
@@ -5075,38 +5017,28 @@
                     scx = stab.x - cameraX_r;
                     scy = stab.y - cameraY_r;
                 }
-                ctx.save();
-                ctx.strokeStyle = '#cc99ff';
-                ctx.lineWidth = 3;
-                ctx.shadowColor = '#9b59b6';
-                ctx.shadowBlur = 5;
                 ctx.beginPath();
                 ctx.moveTo(scx, scy);
                 ctx.lineTo(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen);
                 ctx.stroke();
-                // 단검 끝 점
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = '#cc99ff';
-                ctx.shadowBlur = 3;
                 ctx.beginPath();
                 ctx.arc(scx + Math.cos(stab.dir) * stabLen, scy + Math.sin(stab.dir) * stabLen, 3, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
 
-            // ── 어쌔신 연기 파티클 ──
+            // ── 어쌔신 연기 파티클 (배치) ──
+            ctx.fillStyle = '#aaaacc';
             for (const p of assassinSmokeParticles) {
                 const sx = p.x - cameraX_r;
                 const sy = p.y - cameraY_r;
                 if (sx < -80 || sx > canvas.width + 80 || sy < -80 || sy > canvas.height + 80) continue;
-                ctx.save();
                 ctx.globalAlpha = Math.max(0, p.life * 0.55);
-                ctx.fillStyle = '#aaaacc';
                 ctx.beginPath();
-                ctx.arc(sx, sy, Math.max(0.1, p.radius * p.life), 0, Math.PI * 2);
+                ctx.arc(sx, sy, Math.max(0.5, p.radius * p.life), 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
+            ctx.globalAlpha = 1;
 
             // ── 워리어 검 휘두르기 (모든 플레이어 playerSwings 기반) ──
             for (const id in playerSwings) {
@@ -5248,37 +5180,31 @@
                 ctx.restore();
             }
 
-            // 파티클 (대쉬 먼지/잔상) 그리기
+            // 파티클 (대쉬 먼지/잔상) — 배치 렌더링 (save/restore 없이)
             for (const p of particles) {
                 const sx = p.x - cameraX_r;
                 const sy = p.y - cameraY_r;
-                // 화면 밖 스킵
                 if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
-                ctx.save();
                 ctx.globalAlpha = Math.max(0, p.life * 0.75);
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
-                ctx.arc(sx, sy, Math.max(0.1, p.radius * p.life), 0, Math.PI * 2);
+                ctx.arc(sx, sy, Math.max(0.5, p.radius * p.life), 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
+            ctx.globalAlpha = 1;
 
-            // 히트 이펙트 그리기
+            // 히트 이펙트 — 배치 렌더링
             for (const e of hitEffects) {
                 const sx = e.x - cameraX_r;
                 const sy = e.y - cameraY_r;
-                // 화면 밖 스킵
                 if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
-                ctx.save();
                 ctx.globalAlpha = Math.max(0, e.life * 0.9);
                 ctx.fillStyle = e.color;
-                ctx.shadowColor = e.color;
-                ctx.shadowBlur = 2;
                 ctx.beginPath();
-                ctx.arc(sx, sy, Math.max(0.1, e.radius * e.life), 0, Math.PI * 2);
+                ctx.arc(sx, sy, Math.max(0.5, e.radius * e.life), 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
+            ctx.globalAlpha = 1;
 
             // 화면 플래시 (피격 시)
             // (화면 플래시는 HUD 섹션으로 이동)
@@ -5304,18 +5230,15 @@
             }
 
             // ── 주몽 화살 시각 이펙트 (playerJumongArrows) 그리기 ──
+            ctx.strokeStyle = '#55ff88';
+            ctx.lineWidth = 3;
             for (const id in playerJumongArrows) {
                 const a = playerJumongArrows[id];
                 if (!a || a.life <= 0) continue;
                 const ax = a.x - cameraX_r;
                 const ay = a.y - cameraY_r;
                 if (ax < -30 || ax > canvas.width * _z + 30 || ay < -30 || ay > canvas.height * _z + 30) continue;
-                ctx.save();
                 ctx.globalAlpha = Math.max(0, a.life);
-                ctx.strokeStyle = '#55ff88';
-                ctx.lineWidth = 3;
-                ctx.shadowColor = '#00ff44';
-                ctx.shadowBlur = 5;
                 const aDir = a.dir || Math.atan2(a.vy, a.vx);
                 ctx.beginPath();
                 ctx.moveTo(ax - Math.cos(aDir) * 14, ay - Math.sin(aDir) * 14);
@@ -5325,70 +5248,74 @@
                 ctx.beginPath();
                 ctx.arc(ax + Math.cos(aDir) * 14, ay + Math.sin(aDir) * 14, 3, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
             }
+            ctx.globalAlpha = 1;
 
-            // 총알 그리기
+            // 총알 그리기 — 타입별 배치 렌더링 (save/restore 제거)
+            // 일반/스킬 총알 먼저
+            ctx.lineWidth = 2;
             for (let bullet of bullets) {
+                if (bullet.isArrow || bullet.isPetal || bullet.isDummyBullet) continue;
                 const screenX = bullet.x - cameraX_r;
                 const screenY = bullet.y - cameraY_r;
-                
-                if (screenX < -20 || screenX > canvas.width * _z + 20 ||
-                    screenY < -20 || screenY > canvas.height * _z + 20) {
-                    continue;
-                }
-                
-                if (bullet.isDummyBullet) {
-                    ctx.fillStyle = '#88aaff';
-                    ctx.shadowColor = '#4466ff';
-                    ctx.shadowBlur = 3;
+                if (screenX < -20 || screenX > canvas.width * _z + 20 || screenY < -20 || screenY > canvas.height * _z + 20) continue;
+                if (bullet.isSkillBullet) {
+                    ctx.fillStyle = '#ff3333';
+                    ctx.strokeStyle = '#ff8888';
                     ctx.beginPath();
                     ctx.arc(screenX, screenY, 6, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.strokeStyle = '#aaccff';
-                    ctx.lineWidth = 2;
                     ctx.stroke();
-                    ctx.shadowBlur = 0;
-                } else if (bullet.isArrow) {
-                    // 주몽 화살 — 길고 녹색 선분
-                    ctx.save();
-                    ctx.strokeStyle = '#55ff88';
-                    ctx.lineWidth = 3;
-                    ctx.shadowColor = '#00ff44';
-                    ctx.shadowBlur = 4;
-                    ctx.beginPath();
-                    const aDir = bullet.angle || Math.atan2(bullet.vy, bullet.vx);
-                    ctx.moveTo(screenX - Math.cos(aDir) * 14, screenY - Math.sin(aDir) * 14);
-                    ctx.lineTo(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14);
-                    ctx.stroke();
-                    // 화살촉 점
-                    ctx.fillStyle = '#ccffdd';
-                    ctx.beginPath();
-                    ctx.arc(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                } else if (bullet.isPetal) {
-                    // 무희 벚꽃비수 — 작은 핑크 꽃
-                    ctx.save();
-                    ctx.fillStyle = '#ff88cc';
-                    ctx.shadowColor = '#ff44aa';
-                    ctx.shadowBlur = 3;
-                    ctx.beginPath();
-                    ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffbbee';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.restore();
                 } else {
-                    ctx.fillStyle = bullet.isSkillBullet ? '#ff0000' : '#ffff00';
+                    ctx.fillStyle = '#ffe600';
+                    ctx.strokeStyle = '#fff176';
                     ctx.beginPath();
-                    ctx.arc(screenX, screenY, bullet.isSkillBullet ? 6 : 4, 0, Math.PI * 2);
+                    ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.strokeStyle = bullet.isSkillBullet ? '#ff6666' : '#ffff99';
-                    ctx.lineWidth = 2;
                     ctx.stroke();
                 }
+            }
+            // 무희 벚꽃 비수
+            ctx.fillStyle = '#ff88cc';
+            ctx.strokeStyle = '#ffbbee';
+            ctx.lineWidth = 1.5;
+            for (let bullet of bullets) {
+                if (!bullet.isPetal) continue;
+                const screenX = bullet.x - cameraX_r;
+                const screenY = bullet.y - cameraY_r;
+                if (screenX < -20 || screenX > canvas.width * _z + 20 || screenY < -20 || screenY > canvas.height * _z + 20) continue;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+            // 주몽 화살
+            ctx.strokeStyle = '#55ff88';
+            ctx.lineWidth = 3;
+            for (let bullet of bullets) {
+                if (!bullet.isArrow) continue;
+                const screenX = bullet.x - cameraX_r;
+                const screenY = bullet.y - cameraY_r;
+                if (screenX < -30 || screenX > canvas.width * _z + 30 || screenY < -30 || screenY > canvas.height * _z + 30) continue;
+                const aDir = bullet.angle || Math.atan2(bullet.vy, bullet.vx);
+                ctx.beginPath();
+                ctx.moveTo(screenX - Math.cos(aDir) * 14, screenY - Math.sin(aDir) * 14);
+                ctx.lineTo(screenX + Math.cos(aDir) * 14, screenY + Math.sin(aDir) * 14);
+                ctx.stroke();
+            }
+            // 허수아비 총알
+            ctx.fillStyle = '#88aaff';
+            ctx.strokeStyle = '#aaccff';
+            ctx.lineWidth = 2;
+            for (let bullet of bullets) {
+                if (!bullet.isDummyBullet) continue;
+                const screenX = bullet.x - cameraX_r;
+                const screenY = bullet.y - cameraY_r;
+                if (screenX < -20 || screenX > canvas.width * _z + 20 || screenY < -20 || screenY > canvas.height * _z + 20) continue;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
             }
             
             // (조준선은 HUD 섹션에서 그림)
@@ -5555,7 +5482,11 @@
             }
         }
 
+        let _lastPlayerListUpdate = 0;
         function updatePlayerList() {
+            const now = Date.now();
+            if (now - _lastPlayerListUpdate < 500) return; // 2fps max for player list
+            _lastPlayerListUpdate = now;
             const playerCount = Object.keys(players).length;
             document.getElementById('playerCount').textContent = playerCount;
             
